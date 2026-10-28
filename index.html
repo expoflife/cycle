@@ -510,33 +510,9 @@ const localBackend = {
   async del(k){ const m = this.read(); delete m[k]; try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch {} },
   replaceAll(m){ try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch {} }
 };
-const caps = {};
-function cap(name){
-  if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(null);
-  if (!caps[name]) caps[name] = window.claude.use(name).catch(() => null);
-  return caps[name];
-}
 async function initStore(){
-  let backend = localBackend;
-  const [db, user] = await Promise.all([cap("db"), cap("user")]);
-  if (db && user) {
-    let id = null;
-    try { id = await user.id(); } catch {}
-    if (id) {
-      const col = db.collection("data/users/" + id);
-      backend = {
-        kind:"account",
-        async loadAll(){ const snap = await col.get(); const m = {}; snap.docs.forEach(d => { if (d.exists) m[d.id] = clone(d.data()); }); return m; },
-        set:(k, v) => col.doc(k).set(v),
-        del:(k) => col.doc(k).delete()
-      };
-    }
-  }
-  let data = {};
-  try { data = await backend.loadAll(); }
-  catch (e) {
-    if (backend.kind === "account") { backend = localBackend; data = await backend.loadAll(); toast("Couldn't reach your account storage. Saving in this browser for now.", "error"); }
-  }
+  const backend = localBackend;
+  const data = await backend.loadAll();
   Store.backend = backend; Store.kind = backend.kind;
   applyData(data);
   Store.ready = true;
@@ -583,7 +559,7 @@ function onSaveError(e){
 }
 function updateSaveState(){
   const el = $("#save-state"); if (!el) return;
-  el.textContent = !Store.ready ? "Loading…" : Store.failed ? "Not saved" : Store.kind === "account" ? "Saved to your account" : cloudReady() ? cloudStatusShort() : "Saved on this device";
+  el.textContent = !Store.ready ? "Loading…" : Store.failed ? "Not saved" : cloudReady() ? cloudStatusShort() : "Saved on this device";
 }
 
 /* ---------- Cycle math ---------- */
@@ -1147,7 +1123,7 @@ function editorModal(r){
       <label class="field"><span>Ingredients, one per line</span><textarea class="input" id="rf-ing" placeholder="1 1/2 cup rolled oats&#10;2 tbsp chia seeds&#10;1 apple">${esc(ingText)}</textarea></label>
       <label class="field"><span>Steps, one per line</span><textarea class="input" id="rf-steps">${esc(r.steps.join("\n"))}</textarea></label>
       <div class="field"><span>Nutrition per serving</span><div class="grid g4">${[["protein","Protein (g)"],["carbs","Carbs (g)"],["fat","Fat (g)"],["fiber","Fiber (g)"],["iron","Iron (mg)"],["calcium","Calcium (mg)"],["vitC","Vitamin C (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" step="0.1" min="0" id="rf-${k}" value="${r.nut[k]}"></label>`).join("")}</div>
-        <div class="row"><button type="button" class="btn btn-sm" data-act="estimate">${ICONS.spark}Estimate with Claude</button><span class="small muted" id="est-status"></span></div></div>
+        <div class="row"><button type="button" class="btn btn-sm" data-act="estimate">${ICONS.spark}Estimate nutrition</button><span class="small muted" id="est-status"></span></div></div>
       <label class="field"><span>Protein boost idea</span><input class="input" id="rf-boost" value="${esc(r.boost)}" placeholder="Add 3 oz chicken (+25 g)"></label>
       <label class="field"><span>Storage & prep ahead</span><input class="input" id="rf-storage" value="${esc(r.storage)}"></label>
       <label class="field"><span>Notes</span><input class="input" id="rf-notes" value="${esc(r.notes)}"></label>
@@ -1174,115 +1150,225 @@ function saveRecipeForm(){
   closeModal(true); render(); toast("Recipe saved");
 }
 
-/* Claude-powered scanner */
-function scannerPrompt(kind, text){
-  const phaseHints = PHASE_KEYS.map(k => `${k}: ${Object.values(PHASES[k].foods).flat().slice(0, 18).join(", ")}`).join("\n");
-  return `You convert recipes into structured data for a meal planner that follows the menstrual cycle.
-${kind === "text" ? "Recipe text (may contain several recipes):\n\"\"\"\n" + text + "\n\"\"\"" : "The attached photo(s) show one or more recipes, such as a cookbook page, recipe card, or screenshot."}
-
-Reply with only JSON in this shape:
-{"recipes":[{"title":"string","meal":"breakfast|lunch|dinner|snack","servings":number,"time":"string like 30 min","ingredients":[{"qty":number or null,"unit":"cup|tbsp|tsp|lb|oz|g|can|clove|slice|bunch|scoop|head|pint or empty","item":"ingredient name without the amount","section":"produce|protein|dairy|grains|seeds|frozen|pantry|other"}],"steps":["string"],"storage":"string","notes":"string","phases":["menstrual|follicular|ovulation|luteal"],"nutrition":{"protein":g,"carbs":g,"fat":g,"fiber":g,"iron":mg,"calcium":mg,"vitC":mg},"boost":"string"}]}
-
-Rules:
-- Keep the author's amounts. Convert fractions like 1 1/2 to 1.5. Use null qty for "to taste".
-- nutrition is your estimate PER SERVING from standard food values. Round to whole numbers except iron (one decimal).
-- phases: pick 1-3 phases whose foods match the main ingredients. Phase foods:
-${phaseHints}
-- boost: if protein per serving is under ${targets().perMeal} g, one short idea to raise it with the grams added, else "".
-- Put eggs and milks (including plant milks) in dairy. Nuts, seeds, and nut butters in seeds. Beans, broth, oils, spices in pantry.
-- If there is no recipe, reply {"recipes":[]}.`;
-}
-function chunkText(t, max = 12000){
-  if (t.length <= max) return [t];
-  const parts = t.split(/\n\s*\n/); const out = []; let cur = "";
-  for (const p of parts) { if ((cur + "\n\n" + p).length > max && cur) { out.push(cur); cur = p; } else cur = cur ? cur + "\n\n" + p : p; }
-  if (cur) out.push(cur);
-  return out.flatMap(c => c.length > max ? c.match(new RegExp(`[\\s\\S]{1,${max}}`, "g")) : [c]);
-}
-const SAMPLE_ERR = {
-  no_ai:"The recipe reader isn't set up. Add a Claude API key in your sheet's CycleNourish menu.",
-  no_key:"Add your Claude API key in the sheet: CycleNourish menu → Set Claude API key.",
-  bad_key:"Your Claude API key was rejected. Set it again from the sheet's CycleNourish menu.",
-  ai_error:"Claude couldn't read that right now. Try again in a minute.",
-  unauthorized:"Your sync key doesn't match. Copy it again from the sheet's App Sync tab.",
-  network:"Couldn't reach your Google Sheet. Check your connection and try again.",
-  not_json:"Your sheet's web app needs “Who has access” set to Anyone. Redeploy it with that setting.",
-  not_granted:"Claude access wasn't allowed for this page. You can still add recipes manually or import a file.",
-  sampling_disabled:"Claude isn't available for this account. You can still add recipes manually.",
-  rate_limited:"You've hit a usage limit. Wait a bit and try again.",
-  image_rejected:"That image couldn't be read. Try a JPG or PNG under 20 MB.",
-  images_unavailable:"Photos can't be sent from this view. Paste the recipe text instead.",
-  prompt_too_large:"That's too much text at once. Paste fewer recipes per scan.",
-  refused:"Claude couldn't read that content. Try a different recipe.",
-  invalid_json:"The result came back in an unexpected format. Try again.",
-  session_expired:"Your session expired. Sign in to Claude again and retry.",
-  empty_completion:"No recipe was found. Try a clearer photo or more text."
+/* ---------- Recipe reader: runs on this device, nothing is uploaded ---------- */
+const ERRS = {
+  unauthorized:"Your sync key doesn't match. Copy it again from the sheet's App Sync tab (cell B1).",
+  network:"Couldn't reach your Google Sheet. Check your connection. Changes are saved here and sync when you're back online.",
+  not_json:"Your sheet's web app needs “Who has access” set to Anyone. Redeploy a new version with that setting.",
+  bad_request:"Your sheet's script didn't understand the request. Make sure it has the latest CycleNourish-Sync code and a new deployment.",
+  server:"Your sheet's script reported an error. Try again in a minute.",
+  ocr_load:"Couldn't load the photo reader. Check your connection and try again.",
+  ocr_fail:"Couldn't read text in that photo. Try a sharper, well-lit photo taken straight on."
 };
-let scan = {tab:"text", busy:false, ctl:null, found:[], msg:"", sel:{}};
-async function scannerModal(){
-  const mode = await aiMode(), sample = mode === "claude" ? await cap("sample") : null;
-  let limits = null;
-  if (sample) limits = await sample.limits().catch(() => null);
-  if (mode === "script") limits = {images:{maxCount:4, mediaTypes:["image/jpeg","image/png","image/webp","image/heic","image/heif"]}};
-  const canAI = !!mode, canImg = !!(limits && limits.images);
-  const tabs = [["text","Paste text"]].concat(canImg ? [["photo","Photos"]] : []).concat([["file","Import file"]]);
-  if (!tabs.some(t => t[0] === scan.tab)) scan.tab = "text";
+
+/* Nutrition per 100 g: protein, carbs, fat, fiber (g); iron, calcium, vitamin C (mg).
+   Weights: cup and each (one item) in grams, plus a few item-specific units. Approximate USDA values. */
+const F = (re, n, w) => ({re, n, w:w || {}});
+const FOODS = [
+  F(/egg whites?/, [11,0.7,0.2,0,0.1,7,0], {cup:243, each:33}),
+  F(/\beggs?\b/, [12.6,0.7,9.5,0,1.8,56,0], {cup:243, each:50}),
+  F(/(cooked|shredded|rotisserie).*chicken|chicken.*(cooked|shredded)/, [31,0,3.6,0,1,15,0], {cup:140, each:170}),
+  F(/chicken|poultry/, [23,0,2.6,0,0.4,5,0], {cup:140, each:200}),
+  F(/turkey/, [19.7,0,7.7,0,1.1,20,0], {cup:225, each:450}),
+  F(/beef|steak|lamb|bison/, [21,0,13,0,2.4,12,0], {cup:225, each:225}),
+  F(/pork|sausage|bacon/, [20,1,18,0,1,15,0], {cup:225, each:60, slice:12}),
+  F(/salmon|trout/, [20,0,13,0,0.3,9,0], {each:170}),
+  F(/tuna/, [26,0,1,0,1.5,11,0], {can:140, each:140}),
+  F(/sardine/, [25,0,11,0,2.9,382,0], {can:92}),
+  F(/shrimp|prawn|scallop|shellfish/, [20,0.5,0.5,0,0.5,64,0], {cup:145, each:15}),
+  F(/\bcod\b|halibut|tilapia|flounder|white fish|haddock/, [18,0,0.7,0,0.4,16,1], {each:170}),
+  F(/tofu/, [15.8,4.3,8.7,2.3,2.7,350,0], {cup:250, block:397, package:397, each:397}),
+  F(/tempeh/, [20,7.6,11,0,2.7,111,0], {cup:166, package:227, block:227}),
+  F(/greek yogh?urt|skyr/, [10,3.6,0.4,0,0.1,110,0], {cup:245, each:170}),
+  F(/yogh?urt|kefir/, [3.5,4.7,3.3,0,0.1,121,0.5], {cup:245, each:170}),
+  F(/cottage cheese|ricotta/, [11,3.4,4.3,0,0.1,83,0], {cup:226}),
+  F(/feta/, [14,4,21,0,0.7,493,0], {cup:150}),
+  F(/goat cheese|chevre/, [22,0,30,0,1.9,140,0], {cup:150}),
+  F(/parmesan|pecorino/, [36,3,26,0,0.8,1180,0], {cup:100}),
+  F(/cheese|cheddar|mozzarella/, [25,1.3,28,0,0.5,600,0], {cup:113, slice:21, each:28}),
+  F(/butter(?!nut)(?! bean)/, [0.9,0,81,0,0,24,0], {cup:227}),
+  F(/coconut milk/, [1,3,12,0,0.8,10,1], {cup:240, can:400}),
+  F(/(almond|cashew|oat|soy|rice) milk|plant milk|non-?dairy milk/, [0.8,2,1.2,0.3,0.3,170,0], {cup:240}),
+  F(/\bmilk\b|half and half|cream\b/, [3.4,5,3.3,0,0,120,0], {cup:244}),
+  F(/collagen/, [90,0,0,0,0,0,0], {scoop:11, cup:100}),
+  F(/protein powder|whey|pea protein/, [75,10,5,3,2,300,0], {scoop:30, cup:100}),
+  F(/oil|ghee/, [0,0,100,0,0.6,1,0], {cup:216}),
+  F(/cooked quinoa|quinoa,? cooked/, [4.4,21,1.9,2.8,1.5,17,0], {cup:185}),
+  F(/quinoa/, [14,64,6,7,4.6,47,0], {cup:170}),
+  F(/cooked (brown |white |wild )?rice|rice,? cooked/, [2.6,28,0.6,0.8,0.4,10,0], {cup:158}),
+  F(/\brice\b/, [7.3,77,1.6,2.4,1,15,0], {cup:185}),
+  F(/granola/, [10,64,20,8,3,60,1], {cup:120}),
+  F(/\boats?\b|oatmeal|porridge oats/, [13,68,6.5,10,4.3,52,0], {cup:81}),
+  F(/pasta|spaghetti|noodle|macaroni|penne/, [13,75,1.5,3.2,1.3,21,0], {cup:100}),
+  F(/tortilla|wrap\b|pita|naan/, [8,49,7,3.5,3.6,140,0], {each:45}),
+  F(/bread|sourdough|toast|bun\b|bagel|crouton/, [9,51,3,2.4,3.6,52,0], {slice:50, each:60, cup:30}),
+  F(/flour|panko|breadcrumb/, [10,76,1,2.7,1.2,15,0], {cup:125}),
+  F(/barley|millet|buckwheat|farro|bulgur|amaranth/, [11,73,2.5,10,3,30,0], {cup:180}),
+  F(/(cooked|canned).*lentil|lentils?,? cooked/, [9,20,0.4,8,3.3,19,1.5], {cup:198, can:240}),
+  F(/lentil|split pea/, [25,60,1,11,6.5,35,4.5], {cup:192}),
+  F(/edamame.*pod|pod.*edamame/, [5.5,4.5,2.5,2.5,1.1,31,3], {cup:75}),
+  F(/edamame|soybean/, [11,9,5,5,2.3,63,6], {cup:155}),
+  F(/hummus/, [8,14,9.6,6,2.4,38,0], {cup:246}),
+  F(/chickpea|garbanzo/, [7,22,2.6,6,1.3,40,0], {cup:164, can:240}),
+  F(/\bbeans?\b|cannellini|black-?eyed/, [7,21,0.5,6,2.2,45,0], {cup:172, can:240}),
+  F(/peanut butter/, [25,20,50,6,1.9,49,0], {cup:258}),
+  F(/almond butter|cashew butter|nut butter|sunflower butter/, [21,19,56,10,3.5,250,0], {cup:250}),
+  F(/tahini/, [17,21,54,9,9,426,0], {cup:240}),
+  F(/almond/, [21,22,50,12.5,3.7,269,0], {cup:143, each:1.2}),
+  F(/cashew/, [18,30,44,3.3,6.7,37,0.5], {cup:137}),
+  F(/peanut/, [26,16,49,8.5,4.6,92,0], {cup:146}),
+  F(/walnut|pecan|pistachio|pine nut|hazelnut|brazil nut|macadamia|\bnuts\b/, [15,14,62,7,3,80,1], {cup:117}),
+  F(/pumpkin seed|pepita/, [30,11,49,6,8.8,46,1.9], {cup:129}),
+  F(/sunflower seed/, [21,20,51,8.6,5.3,78,1.4], {cup:140}),
+  F(/sesame/, [18,23,50,12,14.6,975,0], {cup:144}),
+  F(/chia/, [17,42,31,34,7.7,631,1.6], {cup:168}),
+  F(/flax/, [18,29,42,27,5.7,255,0.6], {cup:112}),
+  F(/hemp/, [32,9,49,4,8,70,0], {cup:160}),
+  F(/spinach/, [2.9,3.6,0.4,2.2,2.7,99,28], {cup:30, bunch:340}),
+  F(/kale|collard|chard|mustard greens|dandelion greens/, [4.3,9,0.9,3.6,1.5,150,93], {cup:21, bunch:200, head:200}),
+  F(/lettuce|arugula|greens|romaine|mesclun/, [1.4,2.9,0.2,1.3,1,36,9], {cup:47, head:500, each:500}),
+  F(/cabbage|slaw/, [1.3,5.8,0.1,2.5,0.5,40,36], {cup:70, head:900, each:900}),
+  F(/brussels/, [3.4,9,0.3,3.8,1.4,42,85], {cup:88, each:19}),
+  F(/broccoli/, [2.8,6.6,0.4,2.6,0.7,47,89], {cup:91, head:600, each:600}),
+  F(/cauliflower/, [1.9,5,0.3,2,0.4,22,48], {cup:107, head:575, each:575}),
+  F(/sweet potato|yam/, [1.6,20,0.1,3,0.6,30,2.4], {cup:133, each:130}),
+  F(/potato/, [2,17,0.1,2.2,0.8,12,20], {cup:150, each:210}),
+  F(/carrot/, [0.9,9.6,0.2,2.8,0.3,33,6], {cup:128, each:61}),
+  F(/onion|shallot|scallion|green onion|chive/, [1.1,9.3,0.1,1.7,0.2,23,7], {cup:160, each:110}),
+  F(/garlic/, [6.4,33,0.5,2.1,1.7,181,31], {clove:3, each:40, cup:136}),
+  F(/leek/, [1.5,14,0.3,1.8,2.1,59,12], {each:89, cup:89}),
+  F(/zucchini|squash(?! seed)|pumpkin(?! seed)/, [1.1,7,0.2,1.5,0.5,30,18], {cup:140, each:300}),
+  F(/sun-?dried tomato/, [14,56,3,12,9,110,39], {cup:54}),
+  F(/tomato|salsa|marinara/, [0.9,3.9,0.2,1.2,0.3,10,14], {cup:150, each:120, pint:300, can:400}),
+  F(/bell pepper|red pepper|green pepper|yellow pepper/, [1,6,0.3,2.1,0.4,7,128], {cup:150, each:120}),
+  F(/cucumber/, [0.7,3.6,0.1,0.5,0.3,16,2.8], {cup:120, each:300}),
+  F(/asparagus/, [2.2,3.9,0.1,2.1,2.1,24,5.6], {cup:134, bunch:450, each:16}),
+  F(/mushroom/, [3.1,3.3,0.3,1,0.5,3,2], {cup:70, each:18}),
+  F(/\bpeas?\b/, [5.4,14,0.4,5.1,1.5,25,40], {cup:145}),
+  F(/beet/, [1.6,10,0.2,2.8,0.8,16,4.9], {cup:136, each:82}),
+  F(/celery/, [0.7,3,0.2,1.6,0.2,40,3], {cup:101, each:40, stalk:40}),
+  F(/green beans?|string beans?|artichoke|eggplant/, [1.8,7,0.2,3,1,37,12], {cup:110, each:120}),
+  F(/avocado|guacamole/, [2,8.5,15,6.7,0.6,12,10], {cup:150, each:150}),
+  F(/apple/, [0.3,14,0.2,2.4,0.1,6,4.6], {cup:125, each:182}),
+  F(/banana/, [1.1,23,0.3,2.6,0.3,5,8.7], {cup:150, each:118}),
+  F(/strawberr/, [0.7,7.7,0.3,2,0.4,16,59], {cup:152, pint:300, each:12}),
+  F(/raspberr|blackberr/, [1.3,12,0.6,6.5,0.7,27,24], {cup:123, pint:250}),
+  F(/blueberr|berries|cherr|grape/, [0.8,14,0.3,2.4,0.4,10,12], {cup:148, pint:300}),
+  F(/mango|pineapple|papaya|peach|pear|plum|apricot|melon|cantaloupe|kiwi|orange|pomegranate|fig/, [0.8,13,0.3,2,0.3,15,35], {cup:165, each:150}),
+  F(/lemon juice|lime juice/, [0.4,7.5,0.2,0.3,0.1,8,35], {cup:244, each:45}),
+  F(/lemon|lime/, [1.1,9.3,0.3,2.8,0.6,26,53], {each:60, cup:212}),
+  F(/dates?\b|raisin|dried (cherr|cranberr|apricot|fig)|prune/, [2.3,77,0.4,6.5,1.3,50,1], {cup:147, each:24}),
+  F(/cilantro|parsley|basil|dill|mint|herbs?\b|thyme|rosemary|sage/, [3,6,0.6,3,6,150,100], {cup:16, bunch:60, sprig:1, handful:10}),
+  F(/pesto/, [5,6,45,1.5,1.2,150,1], {cup:250}),
+  F(/miso/, [12,26,6,5.4,2.5,57,0], {cup:275}),
+  F(/tamari|soy sauce|coconut aminos/, [10,5,0.1,0.8,2.4,20,0], {cup:255}),
+  F(/broth|stock\b/, [0.6,0.4,0.2,0,0.1,2,0], {cup:240, can:410}),
+  F(/honey|maple|agave|syrup/, [0.2,78,0,0.1,0.3,50,0.3], {cup:330}),
+  F(/sugar/, [0,100,0,0,0.1,1,0], {cup:200}),
+  F(/cacao|cocoa/, [20,58,14,37,14,128,0], {cup:86}),
+  F(/chocolate|cacao nibs/, [7.8,46,43,11,12,73,0], {cup:170, each:28}),
+  F(/coconut/, [3.3,15,33,9,2.4,14,3.3], {cup:80}),
+  F(/vinegar|mustard|hot sauce|sriracha/, [0.5,2,0.3,0.3,0.3,10,0], {cup:240}),
+  F(/salt|pepper\b|cinnamon|cumin|paprika|turmeric|ginger|spice|seasoning|powder|chili flakes|oregano|vanilla|baking (soda|powder)|extract|water|ice/, [0,0,0,0,0,0,0], {cup:120})
+];
+const UNIT_G = {oz:28.35, lb:453.6, g:1, kg:1000, clove:3, slice:40, scoop:30, bunch:200, head:600, pint:300, package:400, block:397,
+  handful:30, pinch:0.4, dash:0.6, stalk:40, sprig:1, jar:400, bag:300, can:240};
+function foodFor(item){ const t = String(item).toLowerCase().replace(/\(.*?\)/g, " "); return FOODS.find(f => f.re.test(t)) || null; }
+function gramsFor(ing, f){
+  if (ing.qty == null || !(ing.qty > 0)) return 0;
+  const u = normUnit(ing.unit || ""), w = f.w, cup = w.cup || 240;
+  if (u === "cup") return ing.qty * cup;
+  if (u === "tbsp") return ing.qty * cup / 16;
+  if (u === "tsp") return ing.qty * cup / 48;
+  if (u === "ml") return ing.qty * cup / 240;
+  if (u === "l") return ing.qty * cup * 1000 / 240;
+  if (u === "quart") return ing.qty * cup * 4;
+  if (u === "") return ing.qty * (w.each || 100);
+  if (w[u]) return ing.qty * w[u];
+  return ing.qty * (UNIT_G[u] || 100);
+}
+// Estimate per-serving nutrition from an ingredient list
+function estimateNut(ingredients, servings){
+  const tot = {protein:0, carbs:0, fat:0, fiber:0, iron:0, calcium:0, vitC:0};
+  let counted = 0, known = 0;
+  for (const ing of ingredients) {
+    if (ing.qty == null) continue;
+    counted++;
+    const f = foodFor(ing.item); if (!f) continue;
+    known++;
+    const g = gramsFor(ing, f);
+    ["protein","carbs","fat","fiber","iron","calcium","vitC"].forEach((k, i) => { tot[k] += f.n[i] * g / 100; });
+  }
+  const sv = Math.max(1, +servings || 1), nut = {};
+  for (const k of Object.keys(tot)) nut[k] = k === "iron" ? r1(tot[k] / sv) : Math.round(tot[k] / sv);
+  return {nut, rough:counted > 0 && known / counted < 0.75, unknown:counted - known};
+}
+function withEstimate(r){
+  const empty = !Object.values(r.nut).some(v => +v > 0);
+  if (empty && r.ingredients.length) {
+    const e = estimateNut(r.ingredients, r.servings);
+    r.nut = e.nut; r.estimated = true;
+    r.notes = (r.notes || "").replace(/Nutrition not filled in yet\.?/i, "").trim();
+    if (e.rough) r.notes = (r.notes ? r.notes + " " : "") + "Nutrition is a rough estimate because some ingredients weren't recognized.";
+  }
+  if (!r.boost && r.meal !== "snack" && r.nut.protein < targets().perMeal) {
+    const gap = targets().perMeal - r.nut.protein;
+    r.boost = gap > 15 ? "Add 3 oz chicken, fish, or extra-firm tofu per serving (+20–25 g)." : "Add a cup of Greek yogurt or 2 eggs on the side (+12–20 g).";
+  }
+  return r;
+}
+
+/* Photo reader: Tesseract OCR, loaded only when you scan a photo */
+let ocrWorker = null, ocrProgress = null;
+async function ocrImage(file){
+  try { await loadScript(LIBS.tesseract); } catch { throw {code:"ocr_load"}; }
+  if (!ocrWorker) {
+    try { ocrWorker = await window.Tesseract.createWorker("eng", 1, {logger:m => { if (m.status === "recognizing text" && ocrProgress) ocrProgress(m.progress); }}); }
+    catch { throw {code:"ocr_load"}; }
+  }
+  const res = await ocrWorker.recognize(file);
+  return (res && res.data && res.data.text) || "";
+}
+
+let scan = {tab:"text", busy:false, stop:false, found:[], msg:"", sel:{}, draft:""};
+function scannerModal(){
+  const tabs = [["text","Paste text"],["photo","Photos"],["file","Import files"]];
   const body = scan.found.length ? reviewHTML() : scan.tab === "text" ? `
-      <label class="field"><span>Paste one or more recipes</span><textarea class="input" id="scan-text" style="min-height:200px" placeholder="Paste from a website, notes app, email, or document. Separate recipes with a blank line.">${esc(scan.draft || "")}</textarea>
-      <small>${canAI ? "Claude reads the text, splits it into recipes, sorts ingredients for your grocery list, and estimates nutrition. You review everything before saving." : "Recipes are found by their headings, like “Ingredients” and “Directions.” Nutrition is left blank for you to fill in. Add a Claude API key in your sheet to have Claude read recipes and estimate nutrition."}</small></label>
+      <label class="field"><span>Paste one or more recipes</span><textarea class="input" id="scan-text" style="min-height:200px" placeholder="Paste from a website, notes app, email, or document.">${esc(scan.draft || "")}</textarea>
+      <small>Recipes are found by their headings, like “Ingredients” and “Directions.” Ingredients are sorted for your grocery list and nutrition is estimated. You review everything before saving.</small></label>
       <div class="row"><button class="btn btn-primary" data-act="run-scan-text" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read recipes</button></div>`
     : scan.tab === "photo" ? `
-      <div class="dropzone" id="dropzone"><b>Choose photos of recipes</b><span class="small muted">Cookbook pages, recipe cards, or screenshots. Up to ${limits.images.maxCount} per scan.</span>
-        <input type="file" id="scan-photos" accept="${esc(limits.images.mediaTypes.join(","))}" multiple aria-label="Recipe photos"></div>
-      <div class="row"><button class="btn btn-primary" data-act="run-scan-photos" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read photos</button></div>` : `
+      <div class="dropzone" id="dropzone"><b>Choose or take photos</b><span class="small muted">Cookbook pages, recipe cards, or screenshots. Pick several photos to combine pages of one recipe. Photos are read on this device and never uploaded.</span>
+        <input type="file" id="scan-photos" accept="image/*" multiple aria-label="Recipe photos"></div>
+      <div class="row"><button class="btn btn-primary" data-act="run-scan-photos" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read photos</button><span class="small muted">The first photo takes longer while the reader loads.</span></div>` : `
       <div class="dropzone"><b>Import recipe files</b><span class="small muted">Select as many as you like: Word (.docx), PDF, Excel (.xlsx), CSV, text, or a CycleNourish backup (.json). On iPhone, tap Browse and choose OneDrive or Google Drive.</span>
         <input type="file" id="scan-file" multiple accept=".json,.csv,.txt,.md,.html,.htm,.docx,.pdf,.xlsx,.xls,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Recipe files"></div>
-      ${canAI ? "" : `<p class="small muted">Without the Claude key, Word, PDF, and text files are read by their headings (Ingredients, Directions), and nutrition is left blank.</p>`}
-      <details><summary>CSV columns</summary><p class="small muted" style="margin-top:6px">title, meal, servings, time, ingredients (separate with | or ;), steps (separate with |), phases, protein, carbs, fat, fiber, iron, calcium, vitc</p></details>
+      <details><summary>CSV and Excel columns</summary><p class="small muted" style="margin-top:6px">title, meal, servings, time, ingredients (separate with | or ;), steps (separate with |), phases, protein, carbs, fat, fiber, iron, calcium, vitc</p></details>
       <div class="row"><button class="btn btn-primary" data-act="run-import" ${scan.busy ? "disabled" : ""}>Import</button></div>`;
   openModal(`${modalHead(scan.found.length ? "Review recipes" : "Scan or import recipes")}
     <div class="modal-body">
       ${scan.found.length ? "" : `<div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${scan.tab === k}" data-act="scan-tab" data-v="${k}">${l}</button>`).join("")}</div>`}
       ${body}
-      <div class="row" id="scan-status" aria-live="polite">${scan.msg ? `<span class="small ${scan.busy ? "" : "muted"}">${esc(scan.msg)}</span>` : ""}${scan.busy ? `<button class="btn btn-sm" data-act="stop-scan">Stop</button>` : ""}</div>
+      <div class="row" id="scan-status" aria-live="polite">${scan.msg && !scan.found.length ? `<span class="small muted">${esc(scan.msg)}</span>` : ""}</div>
     </div>
     <div class="modal-foot">${scan.found.length ? `<button class="btn" data-act="discard-scan">Discard</button><button class="btn btn-primary" data-act="save-found">Save ${Object.values(scan.sel).filter(Boolean).length} recipe(s)</button>` : `<button class="btn" data-act="close-modal">Close</button>`}</div>`,
-    {onClose:() => { if (scan.ctl) scan.ctl.abort(); }});
+    {onClose:() => { scan.stop = true; }});
   const dz = $("#dropzone");
   if (dz) { dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); }); dz.addEventListener("dragleave", () => dz.classList.remove("over"));
     dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); const inp = $("#scan-photos"); if (inp && e.dataTransfer.files.length) inp.files = e.dataTransfer.files; }); }
 }
 function reviewHTML(){
-  return `${scan.msg ? `<p class="small" style="color:var(--warn)">${esc(scan.msg)}</p>` : ""}<p class="small muted">Found ${scan.found.length} recipe${scan.found.length > 1 ? "s" : ""}${scan.found.filter(r => S.recipes[r.id]).length ? ` (${scan.found.filter(r => S.recipes[r.id]).length} will update recipes you already have)` : ""}. Nutrition is estimated. Uncheck any you don't want, or edit before saving.</p>
+  const upd = scan.found.filter(r => S.recipes[r.id]).length;
+  return `${scan.msg ? `<p class="small" style="color:var(--warn)">${esc(scan.msg)}</p>` : ""}<p class="small muted">Found ${scan.found.length} recipe${scan.found.length > 1 ? "s" : ""}${upd ? ` (${upd} will update recipes you already have)` : ""}. Nutrition is estimated from the ingredients. Check each one, then save.</p>
     <div class="picklist">${scan.found.map((r, i) => `<div class="found"><input type="checkbox" data-change="found-sel" data-i="${i}" ${scan.sel[i] ? "checked" : ""} aria-label="Keep ${esc(r.title)}">
       <div class="section" style="gap:2px;flex:1;min-width:0"><b>${esc(r.title)}</b><span class="small muted num">${esc(r.meal)} · ${r.ingredients.length} ingredients · ${r.nut.protein} g protein · ${r.phases.map(p => PHASES[p].name).join(", ") || "any phase"}</span></div>
       <button class="btn btn-sm" data-act="edit-found" data-i="${i}">Edit</button></div>`).join("")}</div>`;
 }
-function setScanStatus(msg){ scan.msg = msg; const el = $("#scan-status"); if (el) el.innerHTML = `<span class="small">${esc(msg)}</span>${scan.busy ? `<button class="btn btn-sm" data-act="stop-scan">Stop</button>` : ""}`; }
-async function runScan(jobs, preFound = [], note = ""){
-  if (!await aiMode()) { toast("The recipe reader isn't set up. Add a Claude API key in your sheet's CycleNourish menu.", "error"); return; }
-  scan.busy = true; scan.ctl = new AbortController(); const signal = scan.ctl.signal;
-  const found = preFound.slice();
-  for (let i = 0; i < jobs.length; i++) {
-    setScanStatus(`Reading recipes${jobs.length > 1 ? ` (part ${i + 1} of ${jobs.length})` : ""}… each part can take up to a minute.${found.length ? ` ${found.length} found so far.` : ""}`);
-    try {
-      const opts = {signal};
-      if (jobs[i].images) opts.images = jobs[i].images;
-      const res = await aiJson(jobs[i].prompt, opts);
-      const list = Array.isArray(res) ? res : (res && Array.isArray(res.recipes) ? res.recipes : []);
-      list.forEach(x => { if (x && x.title) found.push(normalizeRecipe(Object.assign({}, x, {id:uid(), estimated:true}))); });
-    } catch (e) {
-      if (e && e.code === "cancelled") break;
-      scan.busy = false; scan.ctl = null;
-      setScanStatus(SAMPLE_ERR[e && e.code] || "Something went wrong reading that. Try again.");
-      if (!found.length) return;
-      break;
-    }
-  }
-  scan.busy = false; scan.ctl = null;
-  if (!found.length) { setScanStatus((signal.aborted ? "Stopped." : "No recipes found. Try clearer text or a sharper photo.") + (note ? " " + note : "")); return; }
-  scan.found = found; scan.sel = Object.fromEntries(found.map((_, i) => [i, true])); scan.msg = note;
-  scannerModal();
+function setScanStatus(msg, stoppable){ scan.msg = msg; const el = $("#scan-status"); if (el) el.innerHTML = `<span class="small">${esc(msg)}</span>${stoppable ? `<button class="btn btn-sm" data-act="stop-scan">Stop</button>` : ""}`; }
+function showFound(found, note){
+  found = found.map(withEstimate);
+  if (!found.length) { setScanStatus("No recipes found. Each recipe needs an “Ingredients” heading, or one ingredient per line under its title." + (note ? " " + note : "")); return; }
+  scan.found = found; scan.sel = Object.fromEntries(found.map((_, i) => [i, true])); scan.msg = note || ""; scannerModal();
 }
 function parseCSV(text){
   const rows = []; let row = [], cur = "", q = false;
@@ -1298,14 +1384,14 @@ function csvToRecipes(text){
   const rows = parseCSV(text); if (rows.length < 2) return [];
   const h = rows[0].map(x => x.trim().toLowerCase());
   const col = (...names) => h.findIndex(x => names.includes(x));
-  const c = {title:col("title","name","recipe"), meal:col("meal","type","category","course"), serv:col("servings","serves","yield"), time:col("time","total time","prep time"),
-    ing:col("ingredients","ingredient"), steps:col("steps","directions","instructions","method"), phases:col("phases","phase"),
-    protein:col("protein"), carbs:col("carbs","carbohydrates"), fat:col("fat"), fiber:col("fiber"), iron:col("iron"), calcium:col("calcium"), vitC:col("vitc","vitamin c")};
+  const c = {id:col("id"), title:col("title","name","recipe"), meal:col("meal","type","category","course"), serv:col("servings","serves","yield"), time:col("time","total time","prep time"),
+    ing:col("ingredients","ingredient","ingredients (one per line)"), steps:col("steps","directions","instructions","method","steps (one per line)"), phases:col("phases","phase"),
+    protein:col("protein","protein (g)"), carbs:col("carbs","carbohydrates","carbs (g)"), fat:col("fat","fat (g)"), fiber:col("fiber","fiber (g)"), iron:col("iron","iron (mg)"), calcium:col("calcium","calcium (mg)"), vitC:col("vitc","vitamin c","vitamin c (mg)")};
   if (c.title < 0) return [];
   return rows.slice(1).map(r => {
     const g = k => c[k] >= 0 ? (r[c[k]] || "").trim() : "";
     const meal = g("meal").toLowerCase();
-    return normalizeRecipe({id:uid(), title:g("title"), meal:["breakfast","lunch","dinner","snack"].find(m => meal.includes(m)) || "dinner", servings:+g("serv") || 2, time:g("time"),
+    return normalizeRecipe({id:g("id") && !BUILTIN.some(b => b.id === g("id")) ? g("id") : uid(), title:g("title"), meal:["breakfast","lunch","dinner","snack"].find(m => meal.includes(m)) || guessMeal(g("title")), servings:+g("serv") || 2, time:g("time"),
       ingredients:g("ing").split(/\s*[|;\n]\s*/).filter(Boolean), steps:g("steps").split(/\s*[|\n]\s*/).filter(Boolean),
       phases:g("phases").toLowerCase().split(/[,|; ]+/).filter(p => PHASES[p]),
       nut:Object.fromEntries(["protein","carbs","fat","fiber","iron","calcium","vitC"].map(k => [k, +g(k) || 0])), estimated:!g("protein")});
@@ -1315,7 +1401,8 @@ const LIBS = {
   jszip:"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
   pdfworker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js",
   pdf:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js",
-  xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+  xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+  tesseract:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"
 };
 const libLoads = {};
 function loadScript(url){
@@ -1332,7 +1419,7 @@ async function docxText(file){
   return decodeXml(xml.replace(/<w:tab\/>/g, "\t").replace(/<w:br[^>]*\/>/g, "\n").replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, ""));
 }
 async function pdfText(file){
-  await loadScript(LIBS.pdfworker); await loadScript(LIBS.pdf);  // worker script first so pdf.js runs it on the page
+  await loadScript(LIBS.pdfworker); await loadScript(LIBS.pdf);
   const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = LIBS.pdfworker;
   const pdf = await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
   const out = [];
@@ -1366,12 +1453,12 @@ async function runImport(){
         const text = await file.text(), got = csvToRecipes(text);
         got.length ? found.push(...got) : texts.push(text);
       } else if (/\.xlsx?$/.test(name)) {
-        for (const sh of await xlsxSheets(file)) { const got = csvToRecipes(sh.csv); got.length ? found.push(...got) : texts.push(`Sheet "${sh.name}":\n${sh.csv}`); }
+        for (const sh of await xlsxSheets(file)) { const got = csvToRecipes(sh.csv); got.length ? found.push(...got) : texts.push(sh.csv.replace(/,+/g, " ").replace(/"/g, "")); }
       } else if (name.endsWith(".docx")) {
         texts.push(await docxText(file));
       } else if (name.endsWith(".pdf")) {
         const t = await pdfText(file);
-        if (t.replace(/\s/g, "").length < 80) skipped.push(file.name + " (scanned PDF: use Photos with screenshots of its pages)"); else texts.push(t);
+        if (t.replace(/\s/g, "").length < 80) skipped.push(file.name + " (scanned PDF: screenshot its pages and use Photos)"); else texts.push(t);
       } else if (/\.(txt|md|html?)$/.test(name) || file.type.startsWith("text/")) {
         let t = await file.text();
         if (/\.html?$/.test(name)) { const d = new DOMParser().parseFromString(t, "text/html"); t = d.body ? (d.body.innerText || d.body.textContent) : t; }
@@ -1382,35 +1469,42 @@ async function runImport(){
     }
   }
   scan.busy = false;
-  const plain = texts.map(t => t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim()).filter(Boolean);
-  const note = skipped.length ? `Skipped: ${skipped.join("; ")}.` : "";
-  if (plain.length) {
-    if (!await aiMode()) {
-      plain.forEach(t => found.push(...heuristicParse(t)));
-    } else {
-      const chunks = plain.flatMap(t => chunkText(t));
-      runScan(chunks.map(c => ({prompt:scannerPrompt("text", c)})), found, note);
-      return;
-    }
-  }
-  if (!found.length) { setScanStatus("No recipes found. " + note); return; }
-  scan.found = found; scan.sel = Object.fromEntries(found.map((_, i) => [i, true])); scan.msg = note; scannerModal();
+  texts.forEach(t => found.push(...heuristicParse(t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n"))));
+  showFound(found, skipped.length ? `Skipped: ${skipped.join("; ")}.` : "");
 }
-async function estimateNutrition(){
-  const st = $("#est-status");
-  if (!await aiMode()) { st.textContent = "Needs a Claude API key in your sheet's CycleNourish menu."; return; }
-  const ing = $("#rf-ing").value.trim();
-  if (!ing) { st.textContent = "Add ingredients first."; return; }
-  st.textContent = "Estimating…";
+async function runPhotos(){
+  const files = [...(($("#scan-photos") || {}).files || [])];
+  if (!files.length) { setScanStatus("Choose at least one photo."); return; }
+  scan.busy = true; scan.stop = false;
+  const texts = [];
   try {
-    const res = await aiJson(`Estimate nutrition PER SERVING for this recipe, which makes ${+$("#rf-serv").value || 2} servings.
-Ingredients:
-${ing}
-Reply with only JSON: {"protein":g,"carbs":g,"fat":g,"fiber":g,"iron":mg,"calcium":mg,"vitC":mg}. Whole numbers, iron with one decimal.`, {modelTier:"quick"});
-    for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) if (res && res[k] != null && !isNaN(+res[k])) $("#rf-" + k).value = +res[k];
-    $("#rf-est").value = "1";
-    st.textContent = "Estimated. Adjust if you know better values.";
-  } catch (e) { st.textContent = SAMPLE_ERR[e && e.code] || "Couldn't estimate. Try again."; }
+    for (let i = 0; i < files.length && !scan.stop; i++) {
+      const label = `Reading photo ${i + 1} of ${files.length}`;
+      setScanStatus(label + "…", true);
+      ocrProgress = p => setScanStatus(`${label}… ${Math.round(p * 100)}%`, true);
+      texts.push(await ocrImage(files[i]));
+    }
+  } catch (e) {
+    scan.busy = false; ocrProgress = null;
+    setScanStatus(ERRS[e && e.code] || ERRS.ocr_fail); return;
+  }
+  scan.busy = false; ocrProgress = null;
+  if (scan.stop) { setScanStatus("Stopped."); return; }
+  const text = texts.join("\n\n").replace(/[|]/g, "").replace(/[ \t]+\n/g, "\n");
+  if (text.replace(/\s/g, "").length < 20) { setScanStatus(ERRS.ocr_fail); return; }
+  scan.draft = text;
+  const found = heuristicParse(text);
+  if (!found.length) { scan.tab = "text"; scan.msg = "The photo's text is below. Add an “Ingredients” line above the ingredients if needed, then tap Read recipes."; scannerModal(); return; }
+  showFound(found);
+}
+function estimateNutrition(){
+  const st = $("#est-status");
+  const ing = $("#rf-ing").value.split("\n").map(s => s.trim()).filter(Boolean).map(parseIngredientLine);
+  if (!ing.length) { st.textContent = "Add ingredients first."; return; }
+  const e = estimateNut(ing, +$("#rf-serv").value || 2);
+  for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) $("#rf-" + k).value = e.nut[k];
+  $("#rf-est").value = "1";
+  st.textContent = e.unknown ? `Estimated. ${e.unknown} ingredient${e.unknown > 1 ? "s weren't" : " wasn't"} recognized, so adjust if you know better values.` : "Estimated from the ingredients. Adjust if you know better values.";
 }
 
 /* Grocery */
@@ -1538,9 +1632,9 @@ function viewProfile(){
         `<p class="small num">Per dose: iron ${b.iron} mg · folate ${b.folate} mcg · vitamin D ${b.vitD} IU · B12 ${b.vitB12} mcg · calcium ${b.calcium} mg · DHA ${b.dha} mg. <button class="link" data-act="customize-brand">Edit values</button></p>`}` : ""}
     </section>
     <section class="card section"><h2>Your data</h2>
-      <p>${Store.kind === "account" ? "Your recipes, plan, and logs are saved to your Claude account. Only you can see them, and they sync wherever you open this app while signed in." : cloudReady() ? "Your data is saved on this device and synced to your Google Sheet, so it follows you to any phone or computer you connect." : "Your data is saved on this device only. Connect your Google Sheet below to back it up and use it on other devices."}</p>
+      <p>${cloudReady() ? "Your data is saved on this device and synced to your Google Sheet, so it follows you to any phone or computer you connect." : "Your data is saved on this device only. Connect your Google Sheet below to back it up and use it on other devices."}</p>
       <p class="small muted">To keep a copy in OneDrive or Google Drive, tap Export backup. On iPhone, choose Save to Files, then OneDrive or Google Drive. To restore, use Import backup and pick that file.${s.lastBackup ? ` Last backup: ${esc(fmtDate(s.lastBackup, {month:"short", day:"numeric", year:"numeric"}))}.` : " No backup yet."}</p>
-      ${IN_CLAUDE ? "" : cloudSectionHTML()}
+      ${cloudSectionHTML()}
       <div class="row"><button class="btn" data-act="export">Export backup</button><button class="btn" data-act="scan-import">Import backup or recipes</button><button class="btn btn-ghost btn-danger" data-act="erase-ask">Erase all data</button></div>
       <div id="erase-confirm"></div></section>`;
 }
@@ -1550,12 +1644,7 @@ function exportData(){
 }
 async function doExport(){
   const json = JSON.stringify(exportData(), null, 2);
-  const dl = await cap("downloads");
-  if (dl) {
-    try { await dl.save({filename:`cyclenourish-backup-${ui.today}.json`, data:json}); S.settings.lastBackup = ui.today; persist("settings"); render(); toast("Backup saved"); return; }
-    catch (e) { if (e && e.code === "declined") return; }
-  }
-  if (!IN_CLAUDE) {
+  {
     try {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
@@ -1577,43 +1666,7 @@ function restoreBackup(data){
   closeModal(true); render(); toast(`Backup restored: ${n} recipes and ${(data.logs || []).length} days of logs`);
 }
 
-/* ---------- Recipe reader: Claude in claude.ai, or Claude through your sheet's script ---------- */
-const IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
-async function aiMode(){
-  if (await cap("sample")) return "claude";
-  return cloudReady() && cloud.ai ? "script" : null;
-}
-async function aiJson(prompt, {images, signal, modelTier} = {}){
-  const sample = await cap("sample");
-  if (sample) { const o = {}; if (signal) o.signal = signal; if (images) o.images = images; if (modelTier) o.modelTier = modelTier; return sample.json(prompt, o); }
-  if (!(cloudReady() && cloud.ai)) throw {code:"no_ai"};
-  const imgs = images ? await Promise.all([...images].map(shrinkImage)) : [];
-  const j = await cloudCall("scan", {prompt, images:imgs, quick:modelTier === "quick"}, signal);
-  return parseLooseJson(j.text);
-}
-function parseLooseJson(t){
-  t = String(t || "").trim();
-  try { return JSON.parse(t); } catch {}
-  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) { try { return JSON.parse(f[1]); } catch {} }
-  const a = t.search(/[\[{]/), b = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
-  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
-  throw {code:"invalid_json"};
-}
-function shrinkImage(file){
-  return new Promise((res, rej) => {
-    const url = URL.createObjectURL(file), img = new Image();
-    img.onload = () => {
-      const k = Math.min(1, 1568 / Math.max(img.naturalWidth, img.naturalHeight));
-      const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-      res({media_type:"image/jpeg", data:c.toDataURL("image/jpeg", 0.85).split(",")[1]});
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); rej({code:"image_rejected"}); };
-    img.src = url;
-  });
-}
-
-/* Reads recipes by their headings when no Claude key is set */
+/* Reads recipes by their headings */
 const ING_HEAD = /^\s*#*\s*(ingredients?|you(?:'|’)ll need|what you(?:'|’)ll need|what you need)\s*:?\s*$/i;
 const STEP_HEAD = /^\s*#*\s*(instructions|directions|method|steps|preparation|how to make(?: it)?)\s*:?\s*$/i;
 const NOTE_HEAD = /^\s*#*\s*(notes?|storage|tips?|make ahead)\s*:?\s*$/i;
@@ -1672,17 +1725,16 @@ function heuristicParse(text){
 
 /* ---------- Google Sheet sync through your Apps Script web app ---------- */
 const CLOUD_KEY = "cyclenourish_cloud";
-const cloud = {url:"", token:"", connected:false, ai:false, localUpdated:0, dirty:false, lastSync:"", state:"off", msg:"", busy:false, again:false, timer:null, lastPull:0};
+const cloud = {url:"", token:"", connected:false, localUpdated:0, dirty:false, lastSync:"", state:"off", msg:"", busy:false, again:false, timer:null, lastPull:0};
 function loadCloudCfg(){ try { Object.assign(cloud, JSON.parse(localStorage.getItem(CLOUD_KEY) || "{}"), {busy:false, timer:null, state:"off"}); } catch {} }
-function saveCloudCfg(){ try { localStorage.setItem(CLOUD_KEY, JSON.stringify({url:cloud.url, token:cloud.token, connected:cloud.connected, ai:cloud.ai, localUpdated:cloud.localUpdated, dirty:cloud.dirty, lastSync:cloud.lastSync})); } catch {} }
-const cloudReady = () => !IN_CLAUDE && cloud.connected && !!cloud.url && !!cloud.token;
+function saveCloudCfg(){ try { localStorage.setItem(CLOUD_KEY, JSON.stringify({url:cloud.url, token:cloud.token, connected:cloud.connected, localUpdated:cloud.localUpdated, dirty:cloud.dirty, lastSync:cloud.lastSync})); } catch {} }
+const cloudReady = () => cloud.connected && !!cloud.url && !!cloud.token;
 async function cloudCall(action, extra = {}, signal){
   let res;
   try { res = await fetch(cloud.url, {method:"POST", body:JSON.stringify(Object.assign({action, token:cloud.token}, extra)), redirect:"follow", signal}); }
   catch (e) { if (e && e.name === "AbortError") throw {code:"cancelled"}; throw {code:"network"}; }
   let j; try { j = await res.json(); } catch { throw {code:"not_json"}; }
   if (!j || !j.ok) throw {code:(j && j.error) || "server", message:j && j.message};
-  if ("ai" in j) cloud.ai = !!j.ai;
   return j;
 }
 function mapFromExport(d){
@@ -1696,7 +1748,7 @@ function mapFromExport(d){
 }
 function setCloud(state, err){
   cloud.state = state;
-  cloud.msg = state === "error" ? (SAMPLE_ERR[err && err.code] || (err && err.message) || "Sync failed. It will try again when you make a change.") : "";
+  cloud.msg = state === "error" ? (ERRS[err && err.code] || (err && err.message) || "Sync failed. It will try again when you make a change.") : "";
   updateSaveState();
   const box = $("#cloud-status"); if (box) box.textContent = cloudStatusText();
 }
@@ -1712,7 +1764,6 @@ function cloudStatusText(){
   return cloud.lastSync ? "Last synced " + new Date(cloud.lastSync).toLocaleString("en-US", {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}) + (cloud.dirty ? ". Newer changes are waiting to sync." : ".") : "Connected.";
 }
 function markDirty(){
-  if (IN_CLAUDE) return;
   cloud.localUpdated = Date.now(); cloud.dirty = true; saveCloudCfg();
   if (cloudReady()) { clearTimeout(cloud.timer); cloud.timer = setTimeout(cloudPush, 2500); updateSaveState(); }
 }
@@ -1763,7 +1814,7 @@ async function cloudConnect(){
   if (!needReady()) return;
   cloud.url = url; cloud.token = token; msg("Connecting…");
   try { await cloudCall("ping"); }
-  catch (e) { cloud.connected = false; saveCloudCfg(); msg(SAMPLE_ERR[e && e.code] || (e && e.message) || "Couldn't connect. Check the link and key."); return; }
+  catch (e) { cloud.connected = false; saveCloudCfg(); msg(ERRS[e && e.code] || (e && e.message) || "Couldn't connect. Check the link and key."); return; }
   cloud.connected = true; saveCloudCfg();
   await cloudPull(true);
   render(); toast("Connected to your Google Sheet");
@@ -1772,7 +1823,7 @@ function cloudSectionHTML(){
   return `<div class="section" style="gap:10px;border-top:1px solid var(--line);padding-top:14px"><h3>Google Sheet sync</h3>
     ${cloudReady() ? `<div class="notice ${cloud.state === "error" ? "warn" : "accent"}"><div><b>${cloud.state === "error" ? "Sync problem" : "Syncing to your Google Sheet"}</b>
         <p class="small muted" id="cloud-status">${esc(cloudStatusText())}</p>
-        <p class="small muted">${cloud.ai ? "Recipe reader: on (Claude, through your sheet)." : "Recipe reader: headings only. Add a Claude API key in your sheet's CycleNourish menu to read photos and estimate nutrition."}</p></div>
+</div>
         <div class="row"><button class="btn btn-sm" data-act="cloud-sync">Sync now</button><button class="btn btn-sm btn-ghost btn-danger" data-act="cloud-off">Disconnect</button></div></div>` :
     `<p class="small muted">Changes sync automatically a few seconds after you make them. In your sheet, choose CycleNourish → Set up app sync, then paste the web app link and sync key here.</p>
      <label class="field"><span>Web app link</span><input class="input" id="cloud-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(cloud.url)}"></label>
@@ -1833,16 +1884,10 @@ const ACT = {
   "scan": () => { scan.found = []; scan.msg = ""; scannerModal(); },
   "scan-import": () => { scan.found = []; scan.msg = ""; scan.tab = "file"; scannerModal(); },
   "scan-tab": el => { const ta = $("#scan-text"); if (ta) scan.draft = ta.value; scan.tab = el.dataset.v; scan.msg = ""; scannerModal(); },
-  "run-scan-text": async () => { const t = $("#scan-text").value.trim(); scan.draft = t; if (!t) { setScanStatus("Paste a recipe first."); return; }
-    if (!await aiMode()) { const f = heuristicParse(t); if (!f.length) { setScanStatus("No recipes found. Make sure each recipe has an “Ingredients” heading, or one ingredient per line."); return; }
-      scan.found = f; scan.sel = Object.fromEntries(f.map((_, i) => [i, true])); scan.msg = ""; scannerModal(); return; }
-    runScan(chunkText(t).map(c => ({prompt:scannerPrompt("text", c)}))); },
-  "run-scan-photos": async () => { const files = [...($("#scan-photos").files || [])]; if (!files.length) { setScanStatus("Choose at least one photo."); return; }
-    const mode = await aiMode(); let max = 4;
-    if (mode === "claude") { const sample = await cap("sample"); const lim = sample && await sample.limits().catch(() => null); max = (lim && lim.images && lim.images.maxCount) || 1; }
-    const jobs = []; for (let i = 0; i < files.length; i += max) jobs.push({prompt:scannerPrompt("photo"), images:files.slice(i, i + max)}); runScan(jobs); },
-  "run-import": () => runImport(),
-  "stop-scan": () => { if (scan.ctl) scan.ctl.abort(); },
+  "run-scan-text": () => { const t = $("#scan-text").value.trim(); scan.draft = t; if (!t) { setScanStatus("Paste a recipe first."); return; } showFound(heuristicParse(t)); },
+  "run-scan-photos": () => { if (!scan.busy) runPhotos(); },
+  "run-import": () => { if (!scan.busy) runImport(); },
+  "stop-scan": () => { scan.stop = true; },
   "discard-scan": () => { scan.found = []; scan.msg = ""; scannerModal(); },
   "edit-found": el => { const i = +el.dataset.i; const r = scan.found[i]; editorModal(r);
     const save = $("[data-act=save-recipe]"); save.dataset.act = "save-found-one"; save.dataset.i = i; save.textContent = "Save changes"; },
