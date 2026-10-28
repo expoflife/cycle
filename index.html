@@ -1,0 +1,1662 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CycleNourish</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+/* Layout: sidebar + main on desktop, bottom tab bar on phones; the current phase colors the accent. */
+:root{
+  --bg:#F4F6F2; --surface:#FFFFFF; --surface-2:#ECF0E9; --ink:#1C2520; --muted:#56635B; --line:#D9E0D6;
+  --men:#C8102E; --men-strong:#A50D26;
+  --fol:#6F9874; --fol-strong:#4D7254;
+  --ovu:#C4561B; --ovu-strong:#A44612;
+  --lut:#3A8FD0; --lut-strong:#1F6FA8;
+  --preg:#7A4E8C; --preg-strong:#653F75;
+  --ok:#2E7D4F; --warn:#9A6008; --danger:#B42318; --on-accent:#FFFFFF;
+  --accent:var(--fol); --accent-strong:var(--fol-strong);
+  --font-display:"Young Serif", Georgia, "Times New Roman", serif;
+  --font-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-sm:8px; --r:14px; --r-lg:20px;
+  --shadow:0 1px 2px rgba(28,37,32,.06), 0 6px 18px rgba(28,37,32,.05);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101512; --surface:#171E1A; --surface-2:#1F2822; --ink:#E5EBE5; --muted:#9BA9A0; --line:#2B362F;
+  --men:#FF5A69; --men-strong:#FF7A86; --fol:#9DC3A2; --fol-strong:#AED0B2; --ovu:#F2894A; --ovu-strong:#F6A06B;
+  --lut:#74B9EC; --lut-strong:#8EC8F2; --preg:#C99BD8; --preg-strong:#D6B0E2;
+  --ok:#6CC38D; --warn:#E3AA4C; --danger:#F07167; --on-accent:#0E1310;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#101512; --surface:#171E1A; --surface-2:#1F2822; --ink:#E5EBE5; --muted:#9BA9A0; --line:#2B362F;
+  --men:#FF5A69; --men-strong:#FF7A86; --fol:#9DC3A2; --fol-strong:#AED0B2; --ovu:#F2894A; --ovu-strong:#F6A06B;
+  --lut:#74B9EC; --lut-strong:#8EC8F2; --preg:#C99BD8; --preg-strong:#D6B0E2;
+  --ok:#6CC38D; --warn:#E3AA4C; --danger:#F07167; --on-accent:#0E1310;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme:dark; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);line-height:1.1}
+h2{font-size:1.35rem;line-height:1.2}
+h3{font-size:1.08rem;line-height:1.25}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--accent-strong);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.label{font-size:.74rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.brand-mark{width:34px;height:34px;flex:none}
+.brand-name{font-family:var(--font-display);font-size:1.2rem;line-height:1}
+.brand-sub{font-size:.75rem;color:var(--muted)}
+.chip-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
+.save-state{font-size:.75rem;color:var(--muted)}
+
+/* Shell */
+.shell{display:grid;grid-template-columns:228px minmax(0,1fr);min-height:calc(100% - 56px)}
+.sidenav{border-right:1px solid var(--line);background:var(--surface);padding:16px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:calc(56px + env(safe-area-inset-top,0px));height:calc(100vh - 56px);align-self:start}
+.navbtn{display:flex;align-items:center;gap:12px;border:0;background:none;padding:10px 12px;border-radius:12px;font-weight:600;color:var(--muted);text-align:left;width:100%}
+.navbtn svg{width:20px;height:20px;flex:none}
+.navbtn:hover{background:var(--surface-2);color:var(--ink)}
+.navbtn[aria-current="page"]{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--ink)}
+.navbtn[aria-current="page"] svg{color:var(--accent-strong)}
+.sidenav .spacer{flex:1}
+.focus-note{border:1px solid var(--line);border-radius:var(--r);padding:12px;font-size:.82rem;color:var(--muted);display:grid;gap:4px}
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 40px;min-width:0}
+.view{max-width:1100px;margin:0 auto;display:grid;gap:22px}
+.tabbar{display:none}
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .sidenav{display:none}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+  .tabbar .navbtn{flex-direction:column;gap:3px;font-size:.7rem;padding:9px 2px;border-radius:0;align-items:center;text-align:center}
+  .tabbar .navbtn[aria-current="page"]{background:none;color:var(--accent-strong)}
+  .brand-sub,.save-state{display:none}
+}
+
+/* Surfaces */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;min-width:0}
+.section{display:grid;gap:12px}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.g2{grid-template-columns:minmax(0,1fr)}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 14px;font-weight:600;font-size:.9rem;line-height:1.2;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--accent-strong);border-color:var(--accent-strong);color:var(--on-accent)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-ghost{border-color:transparent;background:none}
+.btn-danger{color:var(--danger)}
+.btn-sm{padding:6px 10px;font-size:.82rem;border-radius:10px}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+.icon-btn{border:0;background:none;padding:6px;border-radius:8px;color:var(--muted);display:inline-flex}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.link{border:0;background:none;padding:0;color:var(--accent-strong);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.78rem;font-weight:600;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.pill.ph{background:color-mix(in srgb,var(--c) 15%,var(--surface));border-color:color-mix(in srgb,var(--c) 35%,var(--surface));color:var(--ink)}
+.pill.ph::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border-color:color-mix(in srgb,var(--warn) 35%,var(--surface))}
+.c-menstrual{--c:var(--men)} .c-follicular{--c:var(--fol)} .c-ovulation{--c:var(--ovu)} .c-luteal{--c:var(--lut)} .c-pregnant{--c:var(--preg)}
+.pdots{display:inline-flex;gap:3px}
+.pdots i{width:8px;height:8px;border-radius:50%;background:var(--c);display:block}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:center;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 13%,var(--surface)),var(--surface) 70%);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line))}
+.hero .ring{width:190px;height:190px;max-width:100%}
+.hero-body{display:grid;gap:10px;min-width:0}
+.hero p.lead{color:var(--muted);max-width:62ch}
+@media (max-width:640px){.hero{grid-template-columns:minmax(0,1fr);justify-items:start}.hero .ring{width:160px;height:160px;justify-self:center}}
+.preg-track{width:100%;display:grid;gap:8px}
+.preg-bar{height:14px;border-radius:999px;background:var(--surface-2);position:relative;overflow:hidden;border:1px solid var(--line)}
+.preg-bar span{position:absolute;inset:0 auto 0 0;background:var(--preg);border-radius:999px}
+.preg-ticks{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted)}
+.preg-big{font-family:var(--font-display);font-size:3rem;line-height:1}
+
+.notice{border-radius:var(--r);padding:12px 14px;border:1px solid var(--line);background:var(--surface-2);display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.notice.warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--surface))}
+.notice.accent{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.notice > div{flex:1;min-width:200px}
+
+/* Meal cards */
+.meal{display:grid;gap:10px;align-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;min-width:0}
+.meal .title{font-family:var(--font-display);font-size:1.1rem;line-height:1.25;border:0;background:none;padding:0;text-align:left;color:var(--ink)}
+.meal .title:hover{text-decoration:underline;text-underline-offset:3px}
+.meal-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:.84rem;color:var(--muted)}
+.meal-meta b{color:var(--ink);font-weight:700}
+.boost{font-size:.82rem;color:var(--muted);border-left:3px solid color-mix(in srgb,var(--accent) 60%,var(--line));padding-left:8px}
+.meal.done{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.btn.logged{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.snack-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+
+/* Meters */
+.meter{display:grid;gap:6px}
+.meter-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.meter-val{font-size:1.5rem;font-weight:700;line-height:1}
+.bar{height:8px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:999px;background:var(--c,var(--accent-strong))}
+
+/* Prenatal */
+.check-big{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface-2);cursor:pointer}
+.check-big input{width:22px;height:22px;accent-color:var(--ok)}
+
+/* Plan */
+.plan-day{display:grid;grid-template-columns:150px repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.plan-dayhead{border-left:4px solid var(--c);padding:6px 10px;display:grid;gap:2px;align-content:center}
+.plan-cell{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px;text-align:left;display:grid;gap:4px;min-width:0}
+.plan-cell:hover{border-color:var(--accent)}
+.plan-cell .t{font-weight:600;font-size:.9rem;line-height:1.3}
+.plan-cell.custom{border-style:dashed;border-color:var(--accent)}
+.plan-colhead{display:grid;grid-template-columns:150px repeat(4,minmax(0,1fr));gap:8px}
+.plan-day.today .plan-dayhead{background:color-mix(in srgb,var(--c) 12%,var(--surface));border-radius:0 10px 10px 0}
+@media (max-width:820px){
+  .plan-colhead{display:none}
+  .plan-day{grid-template-columns:repeat(2,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+  .plan-dayhead{grid-column:1/-1}
+  .plan-cell .slotname{display:block}
+}
+.slotname{display:none}
+
+/* Recipes */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:200px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);flex-wrap:wrap}
+.seg button{border:0;background:none;padding:8px 12px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--ink)}
+.rcard{display:grid;gap:8px;align-content:start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-lg);padding:16px;min-width:0}
+.rcard:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.rcard .t{font-family:var(--font-display);font-size:1.05rem;line-height:1.25}
+.rcard .d{font-size:.85rem;color:var(--muted)}
+
+/* Grocery */
+.glist{list-style:none;margin:0;padding:0;display:grid}
+.gitem{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.gitem:last-child{border-bottom:0}
+.gitem input{width:19px;height:19px;accent-color:var(--accent-strong);flex:none}
+.gitem label{flex:1;min-width:0;cursor:pointer;display:grid}
+.gitem .q{font-weight:600}
+.gitem .u{font-size:.78rem;color:var(--muted)}
+.gitem.checked .n{text-decoration:line-through;color:var(--muted)}
+.cols{columns:2 340px;column-gap:14px}
+.cols > .card{break-inside:avoid;margin-bottom:14px;display:block}
+
+/* Log */
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.datenav{display:flex;align-items:center;gap:6px}
+.datenav .d{font-weight:700;min-width:170px;text-align:center}
+
+/* Forms */
+.field{display:grid;gap:5px;min-width:0}
+.field > span{font-size:.84rem;font-weight:600}
+.field small{color:var(--muted);font-size:.78rem}
+.input,select.input,textarea.input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--surface)}
+textarea.input{min-height:110px;resize:vertical}
+.modecards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.modecards{grid-template-columns:minmax(0,1fr)}}
+.modecard{border:1.5px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;background:var(--surface);display:grid;gap:4px}
+.modecard[aria-pressed="true"]{border-color:var(--accent-strong);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.modecard b{font-size:.98rem}
+.modecard span{font-size:.82rem;color:var(--muted)}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.checks label{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:.84rem}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;z-index:50;background:rgba(10,14,12,.5);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);width:min(720px,100%);max-height:100%;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal.sm{width:min(480px,100%)}
+.modal-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.modal-body{padding:18px 20px;overflow-y:auto;display:grid;gap:16px}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stat{background:var(--surface-2);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:1.15rem}
+.stat span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+@media (max-width:480px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ing{margin:0;padding-left:20px;display:grid;gap:4px}
+.steps{margin:0;padding-left:22px;display:grid;gap:8px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px}
+.stepper button{border:0;background:none;width:34px;height:32px;font-size:1.1rem}
+.stepper span{min-width:28px;text-align:center;font-weight:700}
+.picklist{display:grid;gap:6px}
+.pickitem{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);text-align:left;width:100%}
+.pickitem:hover,.pickitem[aria-current="true"]{border-color:var(--accent)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:8px 12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent-strong)}
+.dropzone{border:2px dashed var(--line);border-radius:var(--r);padding:20px;text-align:center;display:grid;gap:8px;justify-items:center}
+.dropzone.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.found{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.found input{width:18px;height:18px}
+
+/* Toasts */
+#toasts{position:fixed;z-index:60;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:8px;pointer-events:none}
+@media (max-width:820px){#toasts{bottom:calc(84px + env(safe-area-inset-bottom,0px));left:max(16px,env(safe-area-inset-left,0px))}}
+.toast{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:.88rem;font-weight:600;box-shadow:var(--shadow);pointer-events:auto;max-width:420px}
+.toast.error{background:var(--danger);color:#fff}
+/* iPhone and touch fixes */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,a,label,input,select{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.modal-body{min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+input[type="date"].input{-webkit-appearance:none;appearance:none;min-height:42px;display:block}
+input[type="date"].input::-webkit-date-and-time-value{text-align:left}
+#mode-chip{max-width:min(52vw,320px);overflow:hidden}
+#mode-chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (hover:none){ .rcard:hover{box-shadow:none;border-color:var(--line)} .btn:hover{background:var(--surface)} .btn-primary:hover{background:var(--accent-strong)} }
+@media (max-width:820px){
+  .input,select.input,textarea.input,.search,input[type="number"]{font-size:16px}
+  .btn{min-height:44px} .btn-sm{min-height:40px;padding:8px 12px}
+  .icon-btn{min-width:40px;min-height:40px;justify-content:center;align-items:center}
+  .gitem{padding:12px 4px} .gitem input{width:22px;height:22px}
+  .modal-back{align-items:flex-end;padding:max(12px,env(safe-area-inset-top,0px)) 0 0 0}
+  .modal{width:100%;border-radius:20px 20px 0 0;max-height:100%}
+  .modal-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .modal-head,.modal-body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .section-head > .row{width:100%}
+  .datenav .d{min-width:0;flex:1}
+  .hero{padding:18px}
+  .card{padding:16px}
+}
+.chart text{fill:var(--muted);font-size:10px;font-family:var(--font-body)}
+details summary{cursor:pointer;font-weight:600}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .2s ease-out}@keyframes pop{from{transform:translateY(6px);opacity:0}}}
+</style>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
+      <circle cx="17" cy="17" r="14" fill="none" stroke="var(--men)" stroke-width="4" stroke-dasharray="15.4 88" transform="rotate(-90 17 17)"/>
+      <circle cx="17" cy="17" r="14" fill="none" stroke="var(--fol)" stroke-width="4" stroke-dasharray="22 88" stroke-dashoffset="-17.4" transform="rotate(-90 17 17)"/>
+      <circle cx="17" cy="17" r="14" fill="none" stroke="var(--ovu)" stroke-width="4" stroke-dasharray="7 88" stroke-dashoffset="-41.4" transform="rotate(-90 17 17)"/>
+      <circle cx="17" cy="17" r="14" fill="none" stroke="var(--lut)" stroke-width="4" stroke-dasharray="38 88" stroke-dashoffset="-50.4" transform="rotate(-90 17 17)"/>
+      <path d="M17 23c0-5 2.5-8 6-9-1 4-3 7-6 9Zm0 0c0-4-2-6.5-5-7.5.8 3.3 2.5 5.8 5 7.5Z" fill="var(--fol-strong)"/>
+    </svg>
+    <div><div class="brand-name">CycleNourish</div><div class="brand-sub">Meals that follow your cycle</div></div>
+  </div>
+  <span class="save-state" id="save-state">Loading…</span>
+  <button class="chip-btn" data-act="go" data-view="profile" id="mode-chip"><span class="dot"></span><span id="mode-chip-label">Loading</span></button>
+</header>
+
+<div class="shell">
+  <nav class="sidenav" id="sidenav" aria-label="Sections"></nav>
+  <main id="main" tabindex="-1"></main>
+</div>
+<nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
+<div id="modal-root"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------- Small helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ds = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const todayStr = () => ds(new Date());
+const addDays = (s, n) => { const d = pd(s); d.setDate(d.getDate()+n); return ds(d); };
+const utc = s => { const [y,m,d] = s.split("-").map(Number); return Date.UTC(y, m-1, d); };
+const diffDays = (a, b) => Math.round((utc(a) - utc(b)) / 864e5);
+const fmtDate = (s, o = {weekday:"short", month:"short", day:"numeric"}) => pd(s).toLocaleDateString("en-US", o);
+const clamp = (n, a, b) => Math.min(b, Math.max(a, Number(n) || a));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const r1 = n => Math.round((Number(n) || 0) * 10) / 10;
+const clone = o => JSON.parse(JSON.stringify(o));
+const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || "");
+
+const ICONS = {
+  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 8 8"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>',
+  plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  recipes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3Z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>',
+  grocery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  log:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  profile:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+  left:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  right:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>'
+};
+
+/* ---------- Domain data ---------- */
+const PHASE_KEYS = ["menstrual","follicular","ovulation","luteal"];
+const PHASES = {
+  menstrual:{ name:"Menstrual", color:"men", tagline:"Rest and replenish",
+    overview:"Estrogen and progesterone are at their lowest, and energy often dips. Warm, iron-rich meals help replace what's lost with bleeding. Pair plant iron with vitamin C to absorb more of it.",
+    seeds:"Pumpkin + flax", focus:["Iron, with vitamin C","B vitamins","Omega-3 fats","Warm, anti-inflammatory foods","Magnesium"],
+    foods:{Vegetables:["Kale","Beets","Mushrooms","Sea vegetables","Collard greens","Sweet potato"],Fruits:["Dark berries","Concord grapes","Watermelon","Pomegranate"],Grains:["Buckwheat","Wild rice","Quinoa","Brown rice"],"Nuts & seeds":["Pumpkin seeds","Flaxseeds","Chestnuts","Peanuts"],Proteins:["Kidney beans","Adzuki beans","Grass-fed beef","Sardines","Shellfish"],Extras:["Ginger","Turmeric","Nettle leaf tea","White miso","Dark chocolate 70%+"]}},
+  follicular:{ name:"Follicular", color:"fol", tagline:"Build and energize",
+    overview:"Estrogen rises and energy and focus usually pick up. Lean on fresh vegetables, fermented foods, fiber, and lighter proteins while you feel more active.",
+    seeds:"Pumpkin + flax", focus:["Cruciferous vegetables","Probiotics and fermented foods","Vitamin C","Fiber","Lean protein"],
+    foods:{Vegetables:["Artichokes","Broccoli","Carrots","Lettuces","Green peas","String beans","Zucchini","Parsley"],Fruits:["Avocado","Lemons and limes","Pomegranate","Plum","Cherry"],Grains:["Oats","Barley","Rye","Sprouted wheat"],"Nuts & seeds":["Pumpkin seeds","Flaxseeds","Brazil nuts","Cashews"],Proteins:["Lentils","Split peas","Black-eyed peas","Eggs","Chicken","Trout"],Extras:["Sauerkraut","Kimchi","Olives","Nut butters","Apple cider vinegar"]}},
+  ovulation:{ name:"Ovulation", color:"ovu", tagline:"Peak energy",
+    overview:"Estrogen peaks and testosterone rises briefly. Many people feel strongest now. Colorful raw vegetables, antioxidant-rich fruit, and fish fit well.",
+    seeds:"Sesame + sunflower", focus:["Antioxidants","Selenium","Fiber","Magnesium","Omega-3 fats"],
+    foods:{Vegetables:["Brussels sprouts","Red bell pepper","Spinach","Tomato","Swiss chard","Asparagus","Eggplant"],Fruits:["Strawberry","Raspberry","Fig","Apricot","Cantaloupe","Guava","Coconut"],Grains:["Quinoa","Amaranth"],"Nuts & seeds":["Almonds","Pistachios","Pecans","Sunflower seeds","Sesame seeds"],Proteins:["Wild salmon","Eggs","Shrimp","Lentils","Lamb"],Extras:["Dark chocolate","Kimchi","Pickled vegetables","Turmeric"]}},
+  luteal:{ name:"Luteal", color:"lut", tagline:"Steady and soothe",
+    overview:"Progesterone rises then falls, and appetite often increases. Complex carbs keep blood sugar steady. Magnesium, calcium, and B6 may ease PMS for some people.",
+    seeds:"Sesame + sunflower", focus:["Complex carbohydrates","Vitamin B6","Magnesium","Calcium","Omega-3 fats"],
+    foods:{Vegetables:["Cabbage","Cauliflower","Celery","Cucumber","Collard greens","Parsnip","Pumpkin","Squash","Sweet potato"],Fruits:["Apple","Dates","Pear","Peach","Raisins"],Grains:["Brown rice","Millet","Oats","Sourdough"],"Nuts & seeds":["Sunflower seeds","Sesame seeds","Walnuts","Pine nuts"],Proteins:["Chickpeas","Navy beans","Turkey","Salmon","Cod","Halibut"],Extras:["Tahini","Dark chocolate","Peppermint tea","Garlic","Ginger"]}}
+};
+const TRIMESTERS = {
+  1:{name:"First trimester", focus:["Folate (600 mcg)","Vitamin B6 and ginger for nausea","Small, frequent meals","Fluids"], note:"Nausea is common. Bland, cold, or salty foods and eating every 2–3 hours can help. Keep taking your prenatal."},
+  2:{name:"Second trimester", focus:["Iron (27 mg)","Calcium and vitamin D","Protein","Omega-3 DHA"], note:"Needs for iron and protein climb. Pair iron foods with vitamin C, and choose low-mercury fish 2–3 times a week."},
+  3:{name:"Third trimester", focus:["Protein","Iron","Fiber and fluids","DHA"], note:"Smaller meals help with heartburn and fullness. Fiber and water help with digestion."}
+};
+const MODES = {
+  avoid:{name:"Not trying to conceive", short:"Cycle sync", desc:"Cycle-synced meals. Prenatal tracking optional."},
+  ttc:{name:"Trying to conceive", short:"Trying to conceive", desc:"Adds your fertile window and daily prenatal tracking."},
+  pregnant:{name:"Pregnant", short:"Pregnant", desc:"Pauses cycle syncing. Tracks weeks, pregnancy targets, and food safety."}
+};
+const SLOTS = [
+  {key:"breakfast", name:"Breakfast", time:"Morning"},
+  {key:"lunch", name:"Lunch", time:"Midday"},
+  {key:"dinner", name:"Dinner", time:"Evening"},
+  {key:"snack", name:"Snack", time:"Anytime"}
+];
+// Approximate label values. Formulas change; users can edit the Custom entry to match their bottle.
+const BRANDS = {
+  ritual:{name:"Ritual Essential Prenatal", iron:18, folate:1000, vitD:2000, vitB12:8, calcium:0, dha:350},
+  perelel:{name:"Perelel Prenatal Pack", iron:27, folate:1000, vitD:1000, vitB12:10, calcium:150, dha:250},
+  thorne:{name:"Thorne Basic Prenatal", iron:45, folate:1000, vitD:1000, vitB12:200, calcium:180, dha:0},
+  oneaday:{name:"One A Day Women's Prenatal 1", iron:27, folate:800, vitD:1000, vitB12:12, calcium:200, dha:200},
+  naturemade:{name:"Nature Made Prenatal Multi + DHA", iron:27, folate:800, vitD:1000, vitB12:12, calcium:150, dha:200},
+  gardenoflife:{name:"Garden of Life Vitamin Code RAW Prenatal", iron:27, folate:800, vitD:1400, vitB12:6, calcium:125, dha:0},
+  megafood:{name:"MegaFood Baby & Me 2", iron:18, folate:600, vitD:600, vitB12:8, calcium:0, dha:0},
+  custom:{name:"My prenatal (custom)"}
+};
+const SECTIONS = [["produce","Produce"],["protein","Meat, fish & tofu"],["dairy","Dairy, eggs & milks"],["grains","Grains & bread"],["seeds","Nuts & seeds"],["frozen","Frozen"],["pantry","Pantry & cans"],["other","Other"]];
+const STAPLES = ["salt","flaky salt","black pepper","pepper","olive oil","cinnamon","cumin","smoked paprika","ground ginger","ground turmeric","vanilla extract","apple cider vinegar","red wine vinegar","honey","raw honey","maple syrup","tamari","garlic powder"];
+
+/* Built-in recipes. Nutrition is an estimate per serving. ing: [qty, unit, item, section] */
+function R(id, title, meal, phases, servings, time, nut, ing, steps, storage, boost){
+  return {id, title, meal, phases, servings, time, nut, ingredients: ing.map(([qty,unit,item,section]) => ({qty, unit, item, section})), steps, storage, boost, notes:"", source:"builtin", estimated:true};
+}
+const N = (protein,carbs,fat,fiber,iron,calcium,vitC) => ({protein,carbs,fat,fiber,iron,calcium,vitC});
+const BUILTIN = [
+  R("b1","Creamy Quinoa Porridge with Berry Compote","breakfast",["menstrual","luteal"],2,"15 min",N(22,52,12,9,3.2,330,15),
+    [[1,"cup","cooked quinoa","grains"],[1.5,"cup","unsweetened almond milk","dairy"],[1,"cup","plain Greek yogurt","dairy"],[0.5,"tsp","cinnamon","pantry"],[1,"cup","mixed dark berries","produce"],[2,"tbsp","ground flaxseed","seeds"],[2,"tbsp","pumpkin seeds","seeds"],[1,"tbsp","honey","pantry"]],
+    ["Warm the quinoa, almond milk, and cinnamon over medium-low heat, stirring, for 8–10 minutes until creamy.","Simmer the berries and honey with a splash of water for 5 minutes until jammy.","Divide the porridge, then top with yogurt, compote, flax, and pumpkin seeds."],
+    "Porridge keeps 4 days in the fridge. Reheat with a splash of milk.","Stir in a scoop of collagen or protein powder (+10–20 g)."),
+  R("b2","Apple Cinnamon Overnight Oats","breakfast",["follicular","menstrual"],2,"5 min + overnight",N(24,55,12,12,3.5,380,5),
+    [[1,"cup","rolled oats","grains"],[1,"cup","unsweetened almond milk","dairy"],[1,"cup","plain Greek yogurt","dairy"],[1,"","apple","produce"],[1,"tsp","cinnamon","pantry"],[2,"tbsp","chia seeds","seeds"],[2,"tbsp","ground flaxseed","seeds"]],
+    ["Dice the apple.","Stir everything together in two jars.","Refrigerate overnight."],"Keeps 4 days in the fridge.","Add a scoop of vanilla protein powder (+20 g)."),
+  R("b3","Raspberry Chia Pudding","breakfast",["ovulation"],2,"5 min + 4 hr",N(25,28,22,16,4,260,16),
+    [[0.5,"cup","chia seeds","seeds"],[1.5,"cup","light coconut milk","dairy"],[1,"cup","raspberries","produce"],[2,"scoop","collagen peptides","pantry"],[1,"tsp","vanilla extract","pantry"],[2,"tbsp","sunflower seeds","seeds"]],
+    ["Whisk chia, coconut milk, collagen, and vanilla.","Chill at least 4 hours, stirring once after 20 minutes.","Top with raspberries and sunflower seeds."],"Keeps 4 days in the fridge.","Serve with a side of 2 hard-boiled eggs (+12 g)."),
+  R("b4","Chocolate Peanut Butter Overnight Oats","breakfast",["luteal"],2,"5 min + overnight",N(30,56,18,10,4.2,400,0),
+    [[1,"cup","rolled oats","grains"],[1,"cup","unsweetened almond milk","dairy"],[1,"cup","plain Greek yogurt","dairy"],[2,"tbsp","raw cacao powder","pantry"],[2,"tbsp","natural peanut butter","seeds"],[1,"tbsp","maple syrup","pantry"],[1,"tbsp","sesame seeds","seeds"]],
+    ["Whisk cacao, peanut butter, milk, and yogurt until smooth.","Stir in oats and sesame seeds.","Refrigerate overnight."],"Keeps 4 days in the fridge.","Use high-protein Greek yogurt or add protein powder (+10–20 g)."),
+  R("b5","Egg, Spinach & Cottage Cheese Scramble","breakfast",[],2,"12 min",N(34,22,24,5,4,200,12),
+    [[6,"","eggs","dairy"],[0.5,"cup","cottage cheese","dairy"],[3,"cup","baby spinach","produce"],[0.5,"","avocado","produce"],[2,"slice","sourdough bread","grains"]],
+    ["Whisk eggs with cottage cheese.","Wilt spinach in a nonstick pan, then add eggs and stir gently until set all the way through.","Serve with toast and sliced avocado."],"Best fresh.","Add a third egg per person (+6 g)."),
+  R("l1","Roasted Squash & Kale Salad with Lentils","lunch",["menstrual","luteal"],4,"35 min",N(38,48,26,13,6,230,80),
+    [[1.5,"lb","butternut squash","produce"],[2,"bunch","lacinato kale","produce"],[1,"cup","dry black lentils","pantry"],[1,"lb","chicken breast","protein"],[0.5,"cup","almonds","seeds"],[4,"oz","goat cheese","dairy"],[0.25,"cup","apple cider vinegar","pantry"],[0.25,"cup","olive oil","pantry"],[2,"tbsp","honey","pantry"]],
+    ["Roast cubed squash and chicken at 425°F for 25 minutes.","Simmer lentils in water for 20–25 minutes until tender, then drain.","Whisk vinegar, oil, and honey. Massage the kale with a spoonful of dressing.","Toss everything with almonds and goat cheese."],"Store roasted squash, chicken, and lentils separately for 4 days.","Add 3 oz extra chicken per bowl (+25 g)."),
+  R("l2","Cilantro Lime Tofu Cabbage Slaw","lunch",["follicular","ovulation"],2,"20 min",N(34,22,28,9,6.5,450,60),
+    [[14,"oz","extra-firm tofu","protein"],[4,"cup","shredded cabbage","produce"],[1,"cup","shelled edamame","frozen"],[0.5,"cup","cilantro","produce"],[0.25,"cup","peanuts","seeds"],[3,"tbsp","lime juice","produce"],[2,"tbsp","olive oil","pantry"]],
+    ["Press and cube the tofu. Air fry at 400°F for 15 minutes until crisp.","Thaw the edamame under warm water.","Toss cabbage, edamame, and cilantro with lime juice and oil.","Top with tofu and peanuts."],"Keep dressing separate. Lasts 4 days.","Double the edamame (+9 g)."),
+  R("l3","Kale Crunch Salad with Chicken","lunch",["ovulation","follicular","luteal"],4,"20 min",N(36,14,38,6,3.5,330,90),
+    [[6,"cup","curly kale","produce"],[2,"cup","green cabbage","produce"],[1,"lb","chicken breast","protein"],[1,"cup","almonds","seeds"],[1,"cup","crumbled feta","dairy"],[0.25,"cup","olive oil","pantry"],[3.5,"tbsp","apple cider vinegar","pantry"]],
+    ["Cook and slice the chicken.","Massage kale with olive oil and a pinch of salt.","Toss with cabbage, toasted almonds, feta, chicken, and vinegar."],"Massaged kale stays crisp for 4 days.","Add a hard-boiled egg (+6 g)."),
+  R("l4","Sweet Potato, Kale & Chicken Bowls","lunch",["menstrual","luteal","follicular"],4,"35 min",N(42,32,18,7,3,120,70),
+    [[1,"lb","sweet potatoes","produce"],[6,"cup","kale","produce"],[1.5,"lb","chicken breast","protein"],[0.5,"cup","natural peanut butter","seeds"],[0.25,"cup","tamari","pantry"],[0.25,"cup","lime juice","produce"]],
+    ["Roast cubed sweet potatoes and chicken at 425°F for 25 minutes.","Whisk peanut butter, tamari, lime, and warm water into a dressing.","Assemble 4 bowls over chopped kale."],"Keeps 4 days in the fridge.",""),
+  R("d1","Brothy Miso Beans with Chicken","dinner",["menstrual","follicular","luteal"],4,"25 min",N(34,50,8,12,5.5,180,40),
+    [[1,"","yellow onion","produce"],[1,"bunch","kale","produce"],[6,"cup","low-sodium broth","pantry"],[2,"tbsp","white miso","pantry"],[2,"can","cannellini beans","pantry"],[12,"oz","cooked shredded chicken","protein"],[1,"","lemon","produce"],[4,"slice","sourdough bread","grains"]],
+    ["Sauté the onion until soft, then add chopped kale.","Add broth, beans, and chicken. Simmer 15 minutes.","Off the heat, stir in miso thinned with a little broth, plus lemon juice.","Serve with toasted sourdough."],"Keeps 5 days in the fridge.",""),
+  R("d2","Lentil Soup with Sun-Dried Tomatoes","dinner",["follicular","ovulation","luteal"],4,"40 min",N(22,60,4,17,6.5,110,15),
+    [[1,"cup","dry green lentils","pantry"],[1,"can","cannellini beans","pantry"],[2,"","carrots","produce"],[1,"","yellow onion","produce"],[0.5,"cup","sun-dried tomatoes","pantry"],[4,"cup","vegetable broth","pantry"],[1,"tbsp","fresh dill","produce"],[1,"tbsp","red wine vinegar","pantry"],[4,"slice","sourdough bread","grains"]],
+    ["Sauté carrots and onion for 6 minutes.","Add broth, lentils, beans, and tomatoes. Simmer 30–35 minutes.","Finish with dill and vinegar."],"Freezes well, or keeps 5 days in the fridge.","Top with a big spoon of Greek yogurt and serve with turkey sausage (+18 g)."),
+  R("d3","Sheet Pan Lemon-Herb Salmon & Asparagus","dinner",["ovulation","menstrual","luteal"],4,"30 min",N(36,28,22,6,3.5,60,25),
+    [[1.5,"lb","wild salmon fillets","protein"],[1,"lb","asparagus","produce"],[2,"","sweet potatoes","produce"],[3,"tbsp","olive oil","pantry"],[2,"clove","garlic","produce"],[1,"","lemon","produce"],[2,"tbsp","fresh dill","produce"]],
+    ["Roast sweet potato wedges at 425°F for 20 minutes.","Add salmon and asparagus with oil, garlic, and lemon. Roast 12 minutes, until salmon flakes.","Finish with dill."],"Best fresh. Keeps 2 days.",""),
+  R("d4","Super Green Soup with Pesto Croutons","dinner",["luteal","menstrual","ovulation"],4,"40 min",N(18,48,10,13,5,150,120),
+    [[1,"","leek","produce"],[0.5,"head","cauliflower","produce"],[0.5,"head","broccoli","produce"],[1,"","zucchini","produce"],[2,"","potatoes","produce"],[2,"cup","spinach","produce"],[1,"cup","frozen peas","frozen"],[1,"can","white beans","pantry"],[3,"cup","low-sodium broth","pantry"],[3,"tbsp","pesto","pantry"],[2,"slice","sourdough bread","grains"]],
+    ["Roast leek, cauliflower, broccoli, zucchini, and potatoes at 400°F for 30 minutes.","Blend with warm broth, beans, spinach, and peas.","Toss cubed bread with pesto and toast 8 minutes."],"Keeps 5 days in the fridge.","Serve with a chicken breast or 2 eggs on the side (+12–30 g)."),
+  R("d5","Turkey & Sweet Potato Skillet","dinner",["luteal","menstrual"],4,"30 min",N(38,26,18,5,3.8,80,70),
+    [[1.5,"lb","lean ground turkey","protein"],[2,"","sweet potatoes","produce"],[1,"","red bell pepper","produce"],[1,"","yellow onion","produce"],[3,"cup","spinach","produce"],[1,"tsp","cumin","pantry"],[1,"tsp","smoked paprika","pantry"],[2,"tbsp","olive oil","pantry"]],
+    ["Cook diced sweet potato in oil, covered, for 10 minutes.","Add onion, pepper, and turkey with spices. Cook until browned through.","Stir in spinach until wilted."],"Keeps 4 days in the fridge.",""),
+  R("d6","Lemon Chicken Quinoa Bowls","dinner",["follicular","ovulation"],4,"30 min",N(46,48,15,9,5,90,45),
+    [[1.5,"lb","chicken breast","protein"],[1,"cup","dry quinoa","grains"],[1,"can","chickpeas","pantry"],[1,"","cucumber","produce"],[1,"pint","cherry tomatoes","produce"],[0.5,"cup","parsley","produce"],[2,"","lemon","produce"],[3,"tbsp","olive oil","pantry"]],
+    ["Cook quinoa.","Grill or pan-sear chicken with lemon zest.","Chop cucumber, tomatoes, and parsley. Toss with lemon juice and oil.","Build bowls with quinoa, chickpeas, salad, and chicken."],"Keeps 4 days in the fridge.",""),
+  R("s1","Lemon Ginger Turmeric Energy Balls","snack",["menstrual","luteal"],6,"15 min",N(9,22,9,3,1.6,30,3),
+    [[1,"cup","pitted dates","produce"],[1,"cup","cashews","seeds"],[0.25,"cup","pumpkin seeds","seeds"],[2,"tbsp","ground flaxseed","seeds"],[1,"","lemon","produce"],[1,"tsp","ground ginger","pantry"],[1,"tsp","ground turmeric","pantry"],[2,"scoop","vanilla protein powder","pantry"]],
+    ["Pulse everything in a food processor until it holds together.","Roll into 12 balls. Chill 30 minutes."],"Keeps 1 week in the fridge or 3 months frozen.",""),
+  R("s2","Really Green Smoothie","snack",["follicular","ovulation"],1,"5 min",N(30,38,16,11,3,450,60),
+    [[2,"cup","spinach","produce"],[0.5,"","banana","produce"],[0.5,"","avocado","produce"],[0.5,"cup","frozen mango","frozen"],[1,"scoop","vanilla protein powder","pantry"],[1,"cup","unsweetened almond milk","dairy"],[1,"tbsp","ground flaxseed","seeds"]],
+    ["Blend until smooth."],"Best fresh.",""),
+  R("s3","Hummus & Crunchy Veggies","snack",["luteal","follicular"],2,"5 min",N(7,18,11,6,2,120,10),
+    [[0.5,"cup","hummus","pantry"],[3,"","carrots","produce"],[0.5,"","cucumber","produce"],[2,"tbsp","sesame seeds","seeds"]],
+    ["Cut vegetables into sticks.","Sprinkle hummus with sesame seeds."],"Cut veggies keep 4 days in water.","Add a cheese stick or 1/2 cup edamame (+7–9 g)."),
+  R("s4","Edamame & Seed Mix","snack",[],2,"5 min",N(16,10,10,6,3,90,8),
+    [[2,"cup","edamame in pods","frozen"],[2,"tbsp","pumpkin seeds","seeds"],[2,"tbsp","sunflower seeds","seeds"],[0.5,"tsp","flaky salt","pantry"]],
+    ["Steam or microwave edamame.","Toss with seeds and salt."],"Keeps 3 days.",""),
+  R("s5","Cottage Cheese Berry Bowl","snack",["ovulation","luteal"],1,"3 min",N(26,18,6,2,0.6,180,45),
+    [[1,"cup","cottage cheese","dairy"],[0.5,"cup","strawberries","produce"],[1,"tbsp","sunflower seeds","seeds"],[1,"tsp","honey","pantry"]],
+    ["Top cottage cheese with berries, seeds, and honey."],"Best fresh.",""),
+  R("s6","Dark Chocolate Pumpkin Seed Bark","snack",["menstrual"],8,"10 min + chill",N(4,14,13,3,3,20,0),
+    [[6,"oz","dark chocolate (70%+)","pantry"],[0.5,"cup","pumpkin seeds","seeds"],[0.25,"cup","dried tart cherries","pantry"],[0.5,"tsp","flaky salt","pantry"]],
+    ["Melt chocolate gently.","Spread on parchment, scatter seeds, cherries, and salt.","Chill until firm, then break into pieces."],"Keeps 2 weeks in a cool spot.","")
+];
+
+/* ---------- State ---------- */
+const DEFAULT_SETTINGS = {
+  setupDone:false, mode:"avoid", lastPeriod:"", periodStarts:[], cycleLen:28, periodLen:5, dueDate:"",
+  phaseOverride:"", lastBackup:"", proteinGoal:40, fiberGoal:28, household:2, healthFocus:"",
+  takesPrenatal:false, prenatalBrand:"ritual",
+  customPrenatal:{iron:27, folate:600, vitD:1000, vitB12:10, calcium:150, dha:200}
+};
+const S = { settings:clone(DEFAULT_SETTINGS), plan:{days:{}}, grocery:{checked:{}, extras:[]}, recipes:{}, logs:{} };
+const ui = { view:"today", logDate:todayStr(), weekOffset:0, rq:"", rMeal:"all", rSource:"all", rFit:true, today:todayStr() };
+
+/* ---------- Storage ---------- */
+const Store = { ready:false, kind:"loading", backend:null, failed:false };
+const LOCAL_KEY = "cyclenourish_v3";
+const localBackend = {
+  kind:"browser",
+  read(){ try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; } },
+  async loadAll(){ return this.read(); },
+  async set(k, v){ const m = this.read(); m[k] = v; try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch { throw {code:"storage"}; } },
+  async del(k){ const m = this.read(); delete m[k]; try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch {} }
+};
+const caps = {};
+function cap(name){
+  if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(null);
+  if (!caps[name]) caps[name] = window.claude.use(name).catch(() => null);
+  return caps[name];
+}
+async function initStore(){
+  let backend = localBackend;
+  const [db, user] = await Promise.all([cap("db"), cap("user")]);
+  if (db && user) {
+    let id = null;
+    try { id = await user.id(); } catch {}
+    if (id) {
+      const col = db.collection("data/users/" + id);
+      backend = {
+        kind:"account",
+        async loadAll(){ const snap = await col.get(); const m = {}; snap.docs.forEach(d => { if (d.exists) m[d.id] = clone(d.data()); }); return m; },
+        set:(k, v) => col.doc(k).set(v),
+        del:(k) => col.doc(k).delete()
+      };
+    }
+  }
+  let data = {};
+  try { data = await backend.loadAll(); }
+  catch (e) {
+    if (backend.kind === "account") { backend = localBackend; data = await backend.loadAll(); toast("Couldn't reach your account storage. Saving in this browser for now.", "error"); }
+  }
+  Store.backend = backend; Store.kind = backend.kind;
+  applyData(data);
+  Store.ready = true;
+  updateSaveState();
+  render();
+}
+function applyData(m){
+  if (m.settings) S.settings = Object.assign(clone(DEFAULT_SETTINGS), m.settings, {customPrenatal:Object.assign(clone(DEFAULT_SETTINGS.customPrenatal), m.settings.customPrenatal || {})});
+  if (m.plan) S.plan = {days:m.plan.days || {}};
+  if (m.grocery) S.grocery = {checked:m.grocery.checked || {}, extras:m.grocery.extras || []};
+  S.recipes = {}; S.logs = {};
+  for (const [k, v] of Object.entries(m)) {
+    if (k.startsWith("recipe_") && v && v.title) S.recipes[v.id] = normalizeRecipe(v);
+    if (k.startsWith("log_") && v && isDate(v.date)) S.logs[v.date] = {date:v.date, meals:Array.isArray(v.meals) ? v.meals : [], prenatal:!!v.prenatal};
+  }
+}
+const timers = {}, chains = {};
+function docFor(key){
+  if (key === "settings") return S.settings;
+  if (key === "plan") return S.plan;
+  if (key === "grocery") return S.grocery;
+  if (key.startsWith("recipe_")) return S.recipes[key.slice(7)];
+  if (key.startsWith("log_")) return S.logs[key.slice(4)];
+}
+function persist(key){
+  if (!Store.ready) return;
+  clearTimeout(timers[key]);
+  timers[key] = setTimeout(() => {
+    const val = docFor(key);
+    const body = val === undefined ? undefined : clone(val);
+    chains[key] = (chains[key] || Promise.resolve())
+      .then(() => body === undefined ? Store.backend.del(key) : Store.backend.set(key, body))
+      .then(() => { if (Store.failed) { Store.failed = false; updateSaveState(); } })
+      .catch(onSaveError);
+  }, 350);
+}
+function onSaveError(e){
+  if (Store.failed) return;
+  Store.failed = true; updateSaveState();
+  const code = e && e.code;
+  if (code === "quota_exceeded") toast("Storage is full. Export a backup and delete old recipes or logs.", "error");
+  else if (code === "invalid_argument") toast("This view can't save changes. Open the app from your own account to save.", "error");
+  else toast("Couldn't save your last change. Check your connection and try again.", "error");
+}
+function updateSaveState(){
+  const el = $("#save-state"); if (!el) return;
+  el.textContent = !Store.ready ? "Loading…" : Store.failed ? "Not saved" : Store.kind === "account" ? "Saved to your account" : "Saved in this browser";
+}
+
+/* ---------- Cycle math ---------- */
+function phaseRanges(L, P){ const ov = L - 14; return {menstrual:[1,P], follicular:[P+1, ov-2], ovulation:[ov-1, ov+1], luteal:[ov+2, L], ov}; }
+function phaseForDay(day, L, P){ const r = phaseRanges(L, P); for (const k of PHASE_KEYS) if (day >= r[k][0] && day <= r[k][1]) return k; return "luteal"; }
+function cycleAt(date){
+  const s = S.settings;
+  if (s.mode === "pregnant") return pregAt(date);
+  const L = clamp(s.cycleLen, 21, 45), P = clamp(s.periodLen, 2, 10);
+  const example = !isDate(s.lastPeriod);
+  const start = example ? addDays(ui.today, -8) : s.lastPeriod;
+  const d = diffDays(date, start);
+  let day, late = 0, projected = false;
+  if (d >= L && d < L + 14) { day = d + 1; late = d - L + 1; }
+  else { day = ((d % L) + L) % L + 1; projected = d >= L; }
+  let phase = late ? "luteal" : phaseForDay(day, L, P);
+  const manual = !!(s.phaseOverride && PHASES[s.phaseOverride]);
+  if (manual) phase = s.phaseOverride;
+  const ov = L - 14;
+  const fertile = !late && day >= ov - 5 && day <= ov + 1;
+  return {kind:"cycle", day, L, P, phase, late, projected, example, manual, fertile, ov, nextIn: late ? 0 : L - day + 1};
+}
+function pregAt(date){
+  const s = S.settings;
+  let gest, example = false;
+  if (isDate(s.dueDate)) gest = 280 - diffDays(s.dueDate, date);
+  else if (isDate(s.lastPeriod)) gest = diffDays(date, s.lastPeriod);
+  else { gest = 98; example = true; }
+  gest = clamp(gest, 0, 300);
+  const week = Math.floor(gest / 7);
+  const tri = week < 14 ? 1 : week < 28 ? 2 : 3;
+  return {kind:"preg", gest, week, dayIn:gest % 7, tri, dueIn:280 - gest, example, phase:"pregnant"};
+}
+function accentFor(ci){ return ci.kind === "preg" ? "preg" : PHASES[ci.phase].color; }
+
+/* ---------- Recipes ---------- */
+function normalizeRecipe(r){
+  const n = r.nut || r.nutrition || {};
+  return {
+    id: String(r.id || uid()), title: String(r.title || "Untitled recipe").slice(0, 140),
+    meal: ["breakfast","lunch","dinner","snack"].includes(r.meal) ? r.meal : "dinner",
+    phases: Array.isArray(r.phases) ? r.phases.filter(p => PHASES[p]) : [],
+    servings: clamp(r.servings || 2, 1, 40), time: String(r.time || ""),
+    nut: {protein:+n.protein||0, carbs:+n.carbs||0, fat:+n.fat||0, fiber:+n.fiber||0, iron:+n.iron||0, calcium:+n.calcium||0, vitC:+n.vitC||0},
+    ingredients: (Array.isArray(r.ingredients) ? r.ingredients : []).map(i => typeof i === "string" ? parseIngredientLine(i) : {
+      qty: i.qty === null || i.qty === "" || isNaN(+i.qty) ? null : +i.qty, unit: normUnit(i.unit || ""), item: String(i.item || "").trim(), section: SECTIONS.some(s => s[0] === i.section) ? i.section : guessSection(i.item || "")
+    }).filter(i => i.item),
+    steps: (Array.isArray(r.steps) ? r.steps : []).map(String).filter(Boolean),
+    storage: String(r.storage || ""), notes: String(r.notes || ""), boost: String(r.boost || ""),
+    source: "mine", estimated: r.estimated !== false, added: r.added || todayStr()
+  };
+}
+const allRecipes = () => BUILTIN.concat(Object.values(S.recipes).sort((a, b) => a.title.localeCompare(b.title)));
+const recipeById = id => BUILTIN.find(r => r.id === id) || S.recipes[id] || null;
+const fits = (r, phase) => !r.phases.length || r.phases.includes(phase);
+
+const PREG_FLAGS = [
+  [/\b(feta|goat cheese|brie|camembert|queso fresco|blue cheese|gorgonzola)\b/i, "Use cheese labeled pasteurized."],
+  [/\bsprouts?\b(?!.*brussels)/i, "Skip raw sprouts, or cook them until steaming."],
+  [/\bliver\b/i, "Liver is very high in vitamin A. Ask your provider before eating it."],
+  [/\b(swordfish|king mackerel|shark|tilefish|bigeye)\b/i, "High-mercury fish. Avoid during pregnancy."],
+  [/\btuna\b/i, "Choose canned light tuna and keep portions modest."],
+  [/\b(sushi|sashimi|raw fish|oysters?|ceviche|smoked salmon|lox)\b/i, "Avoid raw or cold-smoked seafood."],
+  [/\b(deli|lunch meat|hot dog)\b/i, "Heat deli meats until steaming."],
+  [/\b(unpasteurized|raw milk)\b/i, "Avoid unpasteurized dairy and juice."],
+  [/\b(runny|jammy|soft-boiled|poached egg|raw egg)\b/i, "Cook eggs until the yolk is firm."],
+  [/\b(raspberry leaf|nettle|dandelion root|burdock)\b/i, "Ask your provider before herbal teas or tonics."]
+];
+function pregFlags(r){
+  const text = r.title + " " + r.ingredients.map(i => i.item).join(" ") + " " + r.steps.join(" ");
+  return [...new Set(PREG_FLAGS.filter(([re]) => re.test(text)).map(([, m]) => m))];
+}
+
+/* Ingredient parsing for manual entry and imports */
+const FR = {"¼":.25,"½":.5,"¾":.75,"⅓":1/3,"⅔":2/3,"⅛":.125};
+const UNIT_MAP = {cup:"cup",cups:"cup",c:"cup",tbsp:"tbsp",tbs:"tbsp",tablespoon:"tbsp",tablespoons:"tbsp",T:"tbsp",tsp:"tsp",teaspoon:"tsp",teaspoons:"tsp",
+  lb:"lb",lbs:"lb",pound:"lb",pounds:"lb",oz:"oz",ounce:"oz",ounces:"oz",g:"g",gram:"g",grams:"g",kg:"kg",ml:"ml",l:"l",liter:"l",
+  can:"can",cans:"can",clove:"clove",cloves:"clove",slice:"slice",slices:"slice",bunch:"bunch",bunches:"bunch",scoop:"scoop",scoops:"scoop",
+  head:"head",heads:"head",pint:"pint",pints:"pint",package:"package",packages:"package",pkg:"package",block:"block",blocks:"block",
+  handful:"handful",handfuls:"handful",pinch:"pinch",pinches:"pinch",dash:"dash",stalk:"stalk",stalks:"stalk",sprig:"sprig",sprigs:"sprig",quart:"quart",quarts:"quart",jar:"jar",jars:"jar",bag:"bag",bags:"bag"};
+const normUnit = u => { const k = String(u || "").trim().replace(/\.$/, ""); return UNIT_MAP[k] || UNIT_MAP[k.toLowerCase()] || k.toLowerCase(); };
+function parseQty(s){
+  s = s.trim();
+  if (/^\d+\s+\d+\/\d+$/.test(s)) { const [w, f] = s.split(/\s+/); const [a, b] = f.split("/"); return +w + a / b; }
+  if (/^\d+\/\d+$/.test(s)) { const [a, b] = s.split("/"); return a / b; }
+  return parseFloat(s);
+}
+function parseIngredientLine(line){
+  let s = String(line).trim().replace(/^[-*•▢□]\s*/, "");
+  s = s.replace(/(\d)?\s*([¼½¾⅓⅔⅛])/g, (m, w, f) => " " + ((w ? +w : 0) + FR[f]) + " ").trim();
+  let qty = null, rest = s;
+  const m = s.match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)(?:\s*(?:-|–|to)\s*\d+(?:\.\d+)?)?\s*(.*)$/);
+  if (m) { qty = parseQty(m[1]); rest = m[2]; }
+  let unit = "";
+  const w = rest.match(/^\(?([A-Za-z]+)\.?\)?\s+(.*)$/);
+  if (w && UNIT_MAP[w[1]] !== undefined || (w && UNIT_MAP[w[1].toLowerCase()] !== undefined)) { unit = normUnit(w[1]); rest = w[2]; }
+  rest = rest.replace(/^of\s+/i, "").trim();
+  return {qty: isNaN(qty) ? null : qty, unit, item: rest, section: guessSection(rest)};
+}
+function guessSection(item){
+  const t = String(item).toLowerCase();
+  if (/frozen|edamame/.test(t)) return "frozen";
+  if (/broth|stock|canned|\bcans?\b|beans|lentil|chickpea|hummus|pesto|oil|vinegar|honey|syrup|salt|pepper\b(?! bell)|spice|cumin|paprika|cinnamon|turmeric|ginger powder|ground ginger|miso|tamari|soy sauce|cacao|cocoa|chocolate|powder|collagen|extract|sauce|flour|sugar|baking|sun-dried|dried/.test(t) && !/bell pepper/.test(t)) return "pantry";
+  if (/milk|yogurt|cheese|feta|butter(?!nut)|cream|kefir|cottage|ricotta|\beggs?\b|ghee/.test(t) && !/peanut butter|almond butter|nut butter/.test(t)) return "dairy";
+  if (/chicken|turkey|beef|steak|salmon|fish|cod|halibut|shrimp|tofu|tempeh|lamb|pork|sardine|tuna|trout|sausage/.test(t)) return "protein";
+  if (/seed|nut|almond|cashew|walnut|peanut|pecan|pistachio|flax|chia|tahini/.test(t)) return "seeds";
+  if (/oat|quinoa|rice|bread|sourdough|pasta|tortilla|barley|millet|noodle|granola|cracker|wrap/.test(t)) return "grains";
+  if (/kale|spinach|lettuce|apple|berr|banana|lemon|lime|orange|onion|garlic|potato|carrot|cabbage|cilantro|parsley|dill|basil|mint|avocado|tomato|pepper|cucumber|zucchini|broccoli|cauliflower|leek|asparagus|squash|mushroom|ginger|beet|celery|greens|date|grape|pear|peach|mango|fig|herb|scallion|chive|arugula|chard/.test(t)) return "produce";
+  return "other";
+}
+
+/* ---------- Plan & grocery ---------- */
+const SLOT_OFFSET = {breakfast:0, lunch:1, dinner:2, snack:3};
+function suggestFor(date, slot){
+  const ci = cycleAt(date);
+  const pool = allRecipes().filter(r => r.meal === slot);
+  let list = ci.kind === "preg" ? pool : pool.filter(r => fits(r, ci.phase));
+  if (!list.length) list = pool;
+  if (!list.length) return null;
+  const n = Math.floor(diffDays(date, "2026-01-05") / 2) + SLOT_OFFSET[slot];  // repeats each pick for 2 days so leftovers get used
+  return list[((n % list.length) + list.length) % list.length].id;
+}
+function plannedId(date, slot){
+  const chosen = S.plan.days[date] && S.plan.days[date][slot];
+  if (chosen && recipeById(chosen)) return chosen;
+  return suggestFor(date, slot);
+}
+function setPlan(date, slot, id){
+  S.plan.days[date] = S.plan.days[date] || {};
+  if (id) S.plan.days[date][slot] = id; else delete S.plan.days[date][slot];
+  if (!Object.keys(S.plan.days[date]).length) delete S.plan.days[date];
+  const cutoff = addDays(ui.today, -30);
+  for (const d of Object.keys(S.plan.days)) if (d < cutoff) delete S.plan.days[d];
+  persist("plan");
+}
+const weekStart = () => addDays(ui.today, ui.weekOffset * 7);
+const weekDays = () => Array.from({length:7}, (_, i) => addDays(weekStart(), i));
+
+function itemKey(name){
+  let t = String(name).toLowerCase().replace(/\(.*?\)/g, "").replace(/[,;].*$/, "").replace(/\s+/g, " ").trim();
+  t = t.split(" ").map(w => w.endsWith("oes") ? w.slice(0, -2) : w.endsWith("ies") && w.length > 4 ? w.slice(0, -3) + "y" : w.endsWith("s") && !w.endsWith("ss") && w.length > 3 ? w.slice(0, -1) : w).join(" ");
+  return t;
+}
+function buildGrocery(){
+  const counts = {};
+  const days = weekDays();
+  for (const d of days) for (const s of SLOTS) { const id = plannedId(d, s.key); if (id) counts[id] = (counts[id] || 0) + 1; }
+  const hh = clamp(S.settings.household, 1, 12);
+  const items = {};
+  for (const [id, count] of Object.entries(counts)) {
+    const r = recipeById(id); if (!r) continue;
+    const factor = Math.ceil((count * hh / r.servings) * 2) / 2;  // round up to half batches
+    for (const ing of r.ingredients) {
+      const key = itemKey(ing.item);
+      if (!key) continue;
+      const it = items[key] || (items[key] = {key, name:ing.item, section:ing.section || guessSection(ing.item), amounts:{}, open:false, recipes:new Set(), staple:STAPLES.includes(key) || STAPLES.includes(ing.item.toLowerCase())});
+      it.recipes.add(r.title);
+      if (ing.qty == null) it.open = true; else { let u = normUnit(ing.unit), q = ing.qty * factor;
+        if (VOL[u]) { q *= VOL[u]; u = "tbsp"; } else if (WT[u]) { q *= WT[u]; u = "oz"; }
+        it.amounts[u] = (it.amounts[u] || 0) + q; }
+    }
+  }
+  return {items:Object.values(items), counts, meals:Object.values(counts).reduce((a, b) => a + b, 0)};
+}
+function fmtQty(q){
+  if (q >= 10) return String(Math.round(q));
+  const w = Math.floor(q), f = q - w;
+  const opts = [[0,""],[.25,"¼"],[1/3,"⅓"],[.5,"½"],[2/3,"⅔"],[.75,"¾"],[1,""]];
+  let best = opts[0]; for (const o of opts) if (Math.abs(o[0] - f) < Math.abs(best[0] - f)) best = o;
+  const whole = best[0] === 1 ? w + 1 : w;
+  return (whole ? String(whole) : "") + best[1] || "0";
+}
+const PLURAL = {cup:"cups",can:"cans",clove:"cloves",slice:"slices",bunch:"bunches",scoop:"scoops",head:"heads",pint:"pints",package:"packages",block:"blocks",stalk:"stalks",sprig:"sprigs",quart:"quarts",handful:"handfuls",pinch:"pinches",jar:"jars",bag:"bags"};
+const unitLabel = (u, q) => q > 1 && PLURAL[u] ? PLURAL[u] : u;
+const VOL = {cup:16, tbsp:1, tsp:1/3}, WT = {lb:16, oz:1};
+function fmtAmounts(it){
+  const parts = Object.entries(it.amounts).map(([u, q]) => {
+    if (u === "tbsp") { if (q >= 4) { u = "cup"; q = q / 16; } else if (q < 1) { u = "tsp"; q = q * 3; } }
+    if (u === "oz" && q >= 16) { u = "lb"; q = q / 16; }
+    const qq = u === "" ? Math.ceil(q) : q; return (fmtQty(qq) + " " + unitLabel(u, qq)).trim(); });
+  if (it.open) parts.push("as needed");
+  return parts.join(" + ");
+}
+
+/* ---------- Nutrition ---------- */
+function brandInfo(){
+  const k = S.settings.prenatalBrand;
+  return k === "custom" ? Object.assign({name:BRANDS.custom.name}, S.settings.customPrenatal) : (BRANDS[k] || BRANDS.ritual);
+}
+const prenatalOn = () => S.settings.mode !== "avoid" || S.settings.takesPrenatal;
+function targets(){
+  const m = S.settings.mode, preg = m === "pregnant";
+  return {protein:clamp(S.settings.proteinGoal, 10, 120) * 3, perMeal:clamp(S.settings.proteinGoal, 10, 120), fiber:clamp(S.settings.fiberGoal, 10, 80),
+    iron:preg ? 27 : 18, ironUL:45, calcium:1000, vitC:preg ? 85 : 75, folate:preg ? 600 : 400, vitD:600, vitB12:preg ? 2.6 : 2.4, dha:m === "avoid" ? 0 : 200};
+}
+function getLog(d){ return S.logs[d] || {date:d, meals:[], prenatal:false}; }
+function saveLog(d, log){
+  if (!log.meals.length && !log.prenatal) { delete S.logs[d]; } else S.logs[d] = log;
+  persist("log_" + d);
+}
+function totals(d){
+  const log = getLog(d);
+  const t = {protein:0, carbs:0, fat:0, fiber:0, iron:0, calcium:0, vitC:0, foodIron:0, suppIron:0};
+  for (const m of log.meals) for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) t[k] += +m[k] || 0;
+  t.foodIron = t.iron;
+  if (prenatalOn() && log.prenatal) { const b = brandInfo(); t.suppIron = +b.iron || 0; t.iron += t.suppIron; t.calcium += +b.calcium || 0; }
+  return t;
+}
+function streak(){
+  let n = 0, d = ui.today;
+  if (!getLog(d).prenatal) d = addDays(d, -1);
+  while (getLog(d).prenatal && n < 1000) { n++; d = addDays(d, -1); }
+  return n;
+}
+function logRecipe(date, slot, id, servings = 1){
+  const r = recipeById(id); if (!r) return;
+  const log = clone(getLog(date));
+  const n = r.nut;
+  log.meals.push({id:uid(), slot, name:r.title, recipeId:id, servings, protein:r1(n.protein*servings), carbs:r1(n.carbs*servings), fat:r1(n.fat*servings), fiber:r1(n.fiber*servings), iron:r1(n.iron*servings), calcium:Math.round(n.calcium*servings), vitC:Math.round(n.vitC*servings)});
+  saveLog(date, log);
+}
+
+/* ---------- UI: toasts & modals ---------- */
+function toast(msg, type = "info"){
+  const el = document.createElement("div");
+  el.className = "toast" + (type === "error" ? " error" : "");
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => el.remove(), type === "error" ? 6000 : 3200);
+}
+let modalState = null;
+function openModal(html, {size = "", onClose} = {}){
+  closeModal(true);
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="modal-back" data-back="1"><div class="modal ${size}" role="dialog" aria-modal="true">${html}</div></div>`;
+  modalState = {onClose, returnTo:document.activeElement};
+  const first = root.querySelector("input:not([type=hidden]),select,textarea,button:not([data-act=close-modal])") || root.querySelector("button");
+  first && first.focus();
+  return root.querySelector(".modal");
+}
+function closeModal(silent){
+  const root = $("#modal-root");
+  if (!root.innerHTML) return;
+  const st = modalState; modalState = null;
+  root.innerHTML = "";
+  if (st && st.onClose && !silent) st.onClose();
+  if (st && st.returnTo && document.contains(st.returnTo)) st.returnTo.focus();
+}
+const modalHead = (title, sub = "") => `<div class="modal-head"><div class="section" style="gap:4px">${sub}<h2>${esc(title)}</h2></div><button class="icon-btn" data-act="close-modal" aria-label="Close">${ICONS.close}</button></div>`;
+document.addEventListener("keydown", e => {
+  if (!$("#modal-root").innerHTML) return;
+  if (e.key === "Escape") { e.preventDefault(); closeModal(); }
+  if (e.key === "Tab") {
+    const f = [...$("#modal-root").querySelectorAll("button,input,select,textarea,a[href],[tabindex]:not([tabindex='-1'])")].filter(x => !x.disabled && x.offsetParent !== null);
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  }
+});
+$("#modal-root").addEventListener("mousedown", e => { if (e.target.dataset && e.target.dataset.back) closeModal(); });
+
+/* ---------- Rendering ---------- */
+const NAV = [["today","Today"],["plan","Week plan"],["recipes","Recipes"],["grocery","Groceries"],["log","Log"]];
+function renderNav(){
+  const btn = ([k, label]) => `<button class="navbtn" data-act="go" data-view="${k}" ${ui.view === k ? 'aria-current="page"' : ""}>${ICONS[k]}<span>${label}</span></button>`;
+  const focus = S.settings.healthFocus ? `<div class="focus-note"><span class="label">My focus</span><span>${esc(S.settings.healthFocus)}</span></div>` : "";
+  $("#sidenav").innerHTML = NAV.map(btn).join("") + btn(["profile","Profile & data"]) + `<div class="spacer"></div>` + focus;
+  $("#tabbar").innerHTML = NAV.map(btn).join("");
+}
+function phasePill(k, label){ return `<span class="pill ph c-${k}">${esc(label || PHASES[k].name)}</span>`; }
+function pdots(r){ return r.phases.length ? `<span class="pdots" aria-label="Phases: ${esc(r.phases.map(p => PHASES[p].name).join(", "))}">${r.phases.map(p => `<i class="c-${p}"></i>`).join("")}</span>` : `<span class="small muted">Any phase</span>`; }
+
+function render(){
+  ui.today = todayStr();
+  const ci = cycleAt(ui.today);
+  const a = accentFor(ci);
+  document.documentElement.style.setProperty("--accent", `var(--${a})`);
+  document.documentElement.style.setProperty("--accent-strong", `var(--${a}-strong)`);
+  $("#mode-chip-label").textContent = ci.kind === "preg" ? `Week ${ci.week} · Pregnant` : `${PHASES[ci.phase].name} · ${MODES[S.settings.mode].short}`;
+  renderNav();
+  const views = {today:viewToday, plan:viewPlan, recipes:viewRecipes, grocery:viewGrocery, log:viewLog, profile:viewProfile};
+  $("#main").innerHTML = `<div class="view">${(views[ui.view] || viewToday)()}</div>`;
+  if (ui.view === "recipes") renderRecipeGrid();
+  updateSaveState();
+}
+
+function ringSVG(ci){
+  const L = ci.L, R = 52, C = 2 * Math.PI * R, rg = phaseRanges(L, ci.P);
+  const segs = PHASE_KEYS.map(k => {
+    const [a, b] = rg[k], len = Math.max(0, b - a + 1);
+    if (!len) return "";
+    const dash = Math.max(0, len / L * C - 2.5);
+    return `<circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--${PHASES[k].color})" stroke-width="11" stroke-dasharray="${dash} ${C}" stroke-dashoffset="${-((a - 1) / L * C)}" transform="rotate(-90 60 60)" opacity="${k === ci.phase ? 1 : .32}"/>`;
+  }).join("");
+  let fert = "";
+  if (S.settings.mode === "ttc") {
+    const R2 = 64, C2 = 2 * Math.PI * R2, a = ci.ov - 5, len = 7;
+    fert = `<circle cx="60" cy="60" r="${R2}" fill="none" stroke="var(--ovu)" stroke-width="3" stroke-linecap="round" stroke-dasharray="${len / L * C2} ${C2}" stroke-dashoffset="${-((a - 1) / L * C2)}" transform="rotate(-90 60 60)"/>`;
+  }
+  const pos = Math.min(ci.day, L) - .5, ang = pos / L * 2 * Math.PI - Math.PI / 2;
+  const x = 60 + R * Math.cos(ang), y = 60 + R * Math.sin(ang);
+  return `<svg class="ring" viewBox="-10 -10 140 140" role="img" aria-label="Day ${ci.day} of a ${L}-day cycle, ${PHASES[ci.phase].name} phase">
+    ${segs}${fert}
+    <circle cx="${x}" cy="${y}" r="7.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+    <text x="60" y="47" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="Figtree, sans-serif" font-weight="700" letter-spacing="1.2">DAY</text>
+    <text x="60" y="76" text-anchor="middle" font-size="34" fill="var(--ink)" font-family="'Young Serif', Georgia, serif">${ci.day}</text>
+    <text x="60" y="91" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="Figtree, sans-serif">of ${L}</text></svg>`;
+}
+
+function viewToday(){
+  const d = ui.today, ci = cycleAt(d), s = S.settings;
+  let hero;
+  if (ci.kind === "preg") {
+    const tri = TRIMESTERS[ci.tri];
+    hero = `<section class="card hero c-pregnant">
+      <div class="section" style="justify-items:center;gap:2px"><span class="label">Week</span><span class="preg-big num">${ci.week}</span><span class="small muted">+${ci.dayIn} days</span></div>
+      <div class="hero-body">
+        <span class="label">${esc(fmtDate(d, {weekday:"long", month:"long", day:"numeric"}))}</span>
+        <h1>${esc(tri.name)}</h1>
+        <p class="lead">${esc(tri.note)}</p>
+        <div class="preg-track"><div class="preg-bar"><span style="width:${Math.min(100, ci.gest / 280 * 100)}%"></span></div><div class="preg-ticks"><span>Week 0</span><span>14</span><span>28</span><span>40</span></div></div>
+        <div class="row">${ci.dueIn > 0 ? `<span class="pill">${ci.dueIn} days to due date</span>` : `<span class="pill">Past due date</span>`}${tri.focus.map(f => `<span class="pill">${esc(f)}</span>`).join("")}</div>
+      </div></section>`;
+  } else {
+    const ph = PHASES[ci.phase];
+    const chips = [];
+    if (ci.late) chips.push(`<span class="pill warn">Period ${ci.late} day${ci.late > 1 ? "s" : ""} late</span>`);
+    else chips.push(`<span class="pill">Next period in ~${ci.nextIn} day${ci.nextIn > 1 ? "s" : ""}</span>`);
+    if (s.mode === "ttc") chips.push(ci.fertile ? `<span class="pill ph c-ovulation">Fertile window</span>` : `<span class="pill">Fertile window starts day ${ci.ov - 5}</span>`);
+    chips.push(`<span class="pill" title="Seed cycling is a traditional practice. Research on hormone effects is limited.">Seeds: ${esc(ph.seeds)}</span>`);
+    hero = `<section class="card hero">
+      ${ringSVG(ci)}
+      <div class="hero-body">
+        <span class="label">${esc(fmtDate(d, {weekday:"long", month:"long", day:"numeric"}))}${ci.manual ? " · set manually" : ""}</span>
+        <h1>${esc(ph.name)} phase</h1>
+        <p style="font-weight:600">${esc(ph.tagline)}</p>
+        <p class="lead">${esc(ph.overview)}</p>
+        <div class="row">${chips.join("")}</div>
+        <div class="row">
+          <button class="btn btn-primary btn-sm" data-act="period-today">My period started today</button>
+          <label class="row small" style="gap:6px"><span class="muted">Phase</span>
+            <select class="input" style="width:auto;padding:5px 8px" data-change="override" id="override-select" aria-label="Phase">
+              <option value="">Calculated</option>${PHASE_KEYS.map(k => `<option value="${k}" ${s.phaseOverride === k ? "selected" : ""}>${PHASES[k].name}</option>`).join("")}
+            </select></label>
+        </div>
+      </div></section>`;
+  }
+  const notices = [];
+  if (!s.setupDone || ci.example) notices.push(setupCard());
+  else if (ci.late) notices.push(`<div class="notice warn"><div><b>Your period is ${ci.late} day${ci.late > 1 ? "s" : ""} later than predicted.</b><p class="small muted">Tap “My period started today” when it arrives. ${s.mode === "ttc" ? "If you're trying to conceive, a pregnancy test may help you decide whether to switch modes." : ""}</p></div></div>`);
+  const hasData = Object.keys(S.recipes).length || Object.keys(S.logs).length > 6;
+  if (Store.ready && hasData && (!isDate(s.lastBackup) || diffDays(ui.today, s.lastBackup) > 30)) notices.push(`<div class="notice"><div><b>Back up to OneDrive or Google Drive</b><p class="small muted">${isDate(s.lastBackup) ? "Your last backup was over a month ago." : "You haven't saved a backup yet."} It takes a few seconds.</p></div><button class="btn btn-sm" data-act="export">Export backup</button></div>`);
+  if (ci.kind === "cycle" && ci.projected) notices.push(`<div class="notice"><div><b>Predictions are projected from ${esc(fmtDate(s.lastPeriod, {month:"short", day:"numeric"}))}.</b><p class="small muted">Log your most recent period start for accurate phases.</p></div><button class="btn btn-sm" data-act="go" data-view="profile">Update</button></div>`);
+
+  const t = totals(d), tg = targets();
+  const logged = getLog(d).meals;
+  const mealCard = slot => {
+    const id = plannedId(d, slot.key), r = recipeById(id);
+    if (!r) return `<div class="meal"><span class="label">${slot.name}</span><p class="muted">No ${slot.name.toLowerCase()} recipes yet.</p><button class="btn btn-sm" data-act="new-recipe">Add a recipe</button></div>`;
+    const isLogged = logged.some(m => m.recipeId === id && m.slot === slot.key);
+    const low = slot.key !== "snack" && r.nut.protein < tg.perMeal;
+    return `<article class="meal ${isLogged ? "done" : ""}">
+      <div class="section" style="gap:6px">
+        <div class="row" style="justify-content:space-between"><span class="label">${slot.name}</span>${pdots(r)}</div>
+        <button class="title" data-act="open-recipe" data-id="${esc(id)}">${esc(r.title)}</button>
+        <div class="meal-meta"><span><b class="num">${r.nut.protein} g</b> protein</span>${r.time ? `<span>${esc(r.time)}</span>` : ""}</div>
+        ${low && r.boost ? `<p class="boost">To reach ${tg.perMeal} g: ${esc(r.boost)}</p>` : ""}
+      </div>
+      <div class="row">
+        <button class="btn btn-sm ${isLogged ? "logged" : "btn-primary"}" data-act="toggle-log" data-date="${d}" data-slot="${slot.key}" data-id="${esc(id)}">${isLogged ? "Eaten ✓" : "I ate this"}</button>
+        <button class="btn btn-sm" data-act="pick" data-date="${d}" data-slot="${slot.key}">Swap</button>
+      </div></article>`;
+  };
+  const snackId = plannedId(d, "snack"), snack = recipeById(snackId);
+  const snackLogged = snack && logged.some(m => m.recipeId === snackId && m.slot === "snack");
+  const meters = [
+    meter("Protein", t.protein, tg.protein, "g", `${tg.perMeal} g per main meal`),
+    meter("Fiber", t.fiber, tg.fiber, "g", "Supports digestion"),
+    meter("Iron", t.iron, tg.iron, "mg", t.suppIron ? `Food ${r1(t.foodIron)} mg + prenatal ${t.suppIron} mg` : "From food", t.iron > tg.ironUL),
+    meter("Calcium", t.calcium, tg.calcium, "mg", "Food + supplement")
+  ];
+  const ironWarn = t.iron > tg.ironUL ? `<div class="notice warn"><div><b>Today's iron is ${r1(t.iron)} mg, above the 45 mg daily upper limit for adults.</b><p class="small muted">That's usually from supplements. Check with your provider before taking extra iron.</p></div></div>` : "";
+
+  const guide = ci.kind === "preg" ? pregGuide(ci) : phaseGuide(ci.phase);
+  return `
+    ${notices.join("")}
+    ${hero}
+    <section class="section">
+      <div class="section-head"><h2>Today's meals</h2><button class="link" data-act="go" data-view="plan">Edit week plan</button></div>
+      <div class="grid g3">${SLOTS.slice(0, 3).map(mealCard).join("")}</div>
+      ${snack ? `<div class="card snack-row"><span class="label">Snack</span><button class="title link" style="font-family:var(--font-display);font-size:1.02rem;text-decoration:none;color:var(--ink)" data-act="open-recipe" data-id="${esc(snackId)}">${esc(snack.title)}</button><span class="small muted num">${snack.nut.protein} g protein</span><span style="flex:1"></span>
+        <button class="btn btn-sm ${snackLogged ? "logged" : ""}" data-act="toggle-log" data-date="${d}" data-slot="snack" data-id="${esc(snackId)}">${snackLogged ? "Eaten ✓" : "I ate this"}</button>
+        <button class="btn btn-sm" data-act="pick" data-date="${d}" data-slot="snack">Swap</button></div>` : ""}
+    </section>
+    <section class="section">
+      <div class="section-head"><h2>Today's nutrition</h2><button class="link" data-act="go" data-view="log">Open log</button></div>
+      <div class="card grid g4">${meters.join("")}</div>
+      ${ironWarn}
+    </section>
+    ${prenatalOn() ? prenatalCard(d) : ""}
+    ${guide}`;
+}
+function setupCard(){
+  const s = S.settings;
+  return `<section class="card notice accent" style="display:grid;gap:14px">
+    <div><h2>Set up your cycle</h2><p class="muted small">You're seeing an example cycle. Add your details to personalize phases, meals, and groceries. You can change these any time in Profile.</p></div>
+    <div class="modecards">${Object.entries(MODES).map(([k, m]) => `<button class="modecard" data-act="mode" data-mode="${k}" aria-pressed="${s.mode === k}"><b>${m.name}</b><span>${m.desc}</span></button>`).join("")}</div>
+    <div class="grid g3">
+      ${s.mode === "pregnant" ? `<label class="field"><span>Due date</span><input class="input" type="date" id="setup-due" value="${esc(s.dueDate)}"></label>` :
+      `<label class="field"><span>First day of your last period</span><input class="input" type="date" id="setup-last" value="${esc(s.lastPeriod)}" max="${ui.today}"></label>
+       <label class="field"><span>Usual cycle length (days)</span><input class="input num" type="number" id="setup-len" min="21" max="45" value="${s.cycleLen}"></label>
+       <label class="field"><span>Period length (days)</span><input class="input num" type="number" id="setup-plen" min="2" max="10" value="${s.periodLen}"></label>`}
+    </div>
+    <div class="row"><button class="btn btn-primary" data-act="finish-setup">Save and personalize</button><span class="small muted">Not sure? Use 28 days. You can adjust later.</span></div>
+  </section>`;
+}
+function meter(label, val, target, unit, sub, over){
+  const pct = Math.min(100, target ? val / target * 100 : 0);
+  return `<div class="meter"><div class="meter-top"><span class="label">${label}</span><span class="small muted num">/ ${target} ${unit}</span></div>
+    <span class="meter-val num" style="${over ? "color:var(--warn)" : ""}">${r1(val)} <span class="small muted">${unit}</span></span>
+    <div class="bar" role="progressbar" aria-label="${label}" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%;${val >= target ? "--c:var(--ok)" : ""}"></span></div>
+    <span class="small muted">${esc(sub)}</span></div>`;
+}
+function prenatalCard(d){
+  const b = brandInfo(), log = getLog(d), st = streak(), isToday = d === ui.today;
+  return `<section class="section"><div class="section-head"><h2>Prenatal</h2><button class="link" data-act="go" data-view="profile">Change brand</button></div>
+    <div class="card section">
+      <label class="check-big"><input type="checkbox" data-change="prenatal" data-date="${d}" ${log.prenatal ? "checked" : ""}>
+        <div><b>${log.prenatal ? "Taken" : "Not taken yet"}${isToday ? " today" : " on " + esc(fmtDate(d))}</b><div class="small muted">${esc(b.name)}</div></div>
+        <span style="flex:1"></span><span class="pill num">${st}-day streak</span></label>
+      ${+b.iron >= 45 ? `<p class="small" style="color:var(--warn)">This prenatal lists ${b.iron} mg iron, which reaches the 45 mg upper limit by itself. Confirm the dose with your provider.</p>` : ""}
+    </div></section>`;
+}
+function phaseGuide(k){
+  const p = PHASES[k];
+  return `<section class="section"><div class="section-head"><h2>${p.name} food guide</h2></div>
+    <div class="card section">
+      <div class="row">${p.focus.map(f => `<span class="pill">${esc(f)}</span>`).join("")}</div>
+      <div class="grid g3">${Object.entries(p.foods).map(([cat, list]) => `<div class="section" style="gap:6px"><span class="label">${esc(cat)}</span><p class="small">${list.map(esc).join(", ")}</p></div>`).join("")}</div>
+      <p class="small muted">Seed cycling (${esc(p.seeds)}) is a traditional practice. Studies on its hormone effects are limited, so treat it as optional.</p>
+    </div></section>`;
+}
+function pregGuide(ci){
+  return `<section class="section"><div class="section-head"><h2>Pregnancy food safety</h2></div>
+    <div class="card grid g2">
+      ${["Cook meat, poultry, eggs, and seafood all the way through.","Choose pasteurized dairy and juice. Soft cheeses need a pasteurized label.","Skip high-mercury fish: swordfish, shark, king mackerel, tilefish, bigeye tuna.","Eat 8–12 oz of low-mercury fish a week, like salmon, sardines, and cod.","Heat deli meats and hot dogs until steaming.","Wash produce well. Skip raw sprouts.","Keep caffeine under 200 mg a day.","Ask your provider before herbal teas and supplements."].map(x => `<p class="small">${esc(x)}</p>`).join("")}
+    </div><p class="small muted">Recipes with ingredients to check are flagged when you open them.</p></section>`;
+}
+
+/* Week plan */
+function viewPlan(){
+  const days = weekDays();
+  const rows = days.map(d => {
+    const ci = cycleAt(d), c = ci.kind === "preg" ? "pregnant" : ci.phase;
+    const sub = ci.kind === "preg" ? `Week ${ci.week}` : `Day ${ci.day} · ${PHASES[ci.phase].name}`;
+    const cells = SLOTS.map(s => {
+      const id = plannedId(d, s.key), r = recipeById(id), custom = !!(S.plan.days[d] && S.plan.days[d][s.key]);
+      return `<button class="plan-cell ${custom ? "custom" : ""}" data-act="pick" data-date="${d}" data-slot="${s.key}" aria-label="${s.name} on ${esc(fmtDate(d))}: ${esc(r ? r.title : "none")}">
+        <span class="label slotname">${s.name}</span><span class="t">${esc(r ? r.title : "Choose a recipe")}</span>${r ? `<span class="small muted num">${r.nut.protein} g protein</span>` : ""}</button>`;
+    }).join("");
+    return `<div class="plan-day ${d === ui.today ? "today" : ""} c-${c}"><div class="plan-dayhead"><b>${esc(fmtDate(d))}</b><span class="small muted">${esc(sub)}</span>${S.settings.mode === "ttc" && ci.fertile ? `<span class="small" style="color:var(--ovu-strong);font-weight:700">Fertile window</span>` : ""}</div>${cells}</div>`;
+  }).join("");
+  const hasCustom = days.some(d => S.plan.days[d]);
+  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Week plan</span><h1>${esc(fmtDate(days[0], {month:"short", day:"numeric"}))} – ${esc(fmtDate(days[6], {month:"short", day:"numeric"}))}</h1>
+      <p class="muted small">Suggestions follow each day's phase and repeat for two days so you can batch cook. Tap any meal to change it. Dashed outlines are your picks.</p></div>
+      <div class="row"><button class="icon-btn" data-act="week" data-dir="-1" aria-label="Previous week" ${ui.weekOffset <= 0 ? "disabled" : ""}>${ICONS.left}</button><button class="icon-btn" data-act="week" data-dir="1" aria-label="Next week" ${ui.weekOffset >= 3 ? "disabled" : ""}>${ICONS.right}</button>
+      ${hasCustom ? `<button class="btn btn-sm" data-act="reset-week">Reset to suggestions</button>` : ""}<button class="btn btn-sm btn-primary" data-act="go" data-view="grocery">Grocery list</button></div></div>
+    <div class="section" style="gap:8px"><div class="plan-colhead label"><span></span>${SLOTS.map(s => `<span>${s.name}</span>`).join("")}</div>${rows}</div>`;
+}
+
+/* Recipes */
+function viewRecipes(){
+  const ci = cycleAt(ui.today);
+  const fitBtn = ci.kind === "preg" ? "" : `<button class="btn btn-sm" data-act="rfit" aria-pressed="${ui.rFit}">${ui.rFit ? "Showing " + PHASES[ci.phase].name + " recipes" : "Showing all phases"}</button>`;
+  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Cookbook</span><h1>Recipes</h1><p class="small muted">${BUILTIN.length} built-in and ${Object.keys(S.recipes).length} of yours.</p></div>
+      <div class="row"><button class="btn btn-primary" data-act="scan">${ICONS.spark}Scan or import recipes</button><button class="btn" data-act="new-recipe">Add manually</button></div></div>
+    <div class="toolbar">
+      <input class="search" id="recipe-search" type="search" placeholder="Search recipes or ingredients" value="${esc(ui.rq)}" aria-label="Search recipes">
+      <div class="seg" role="group" aria-label="Meal">${[["all","All"],["breakfast","Breakfast"],["lunch","Lunch"],["dinner","Dinner"],["snack","Snack"]].map(([k, l]) => `<button data-act="rmeal" data-v="${k}" aria-pressed="${ui.rMeal === k}">${l}</button>`).join("")}</div>
+      <div class="seg" role="group" aria-label="Source">${[["all","All"],["builtin","Built-in"],["mine","Mine"]].map(([k, l]) => `<button data-act="rsource" data-v="${k}" aria-pressed="${ui.rSource === k}">${l}</button>`).join("")}</div>
+      ${fitBtn}
+    </div>
+    <div class="grid g3" id="recipe-grid"></div>`;
+}
+function renderRecipeGrid(){
+  const el = $("#recipe-grid"); if (!el) return;
+  const ci = cycleAt(ui.today), q = ui.rq.trim().toLowerCase();
+  const list = allRecipes().filter(r =>
+    (ui.rMeal === "all" || r.meal === ui.rMeal) &&
+    (ui.rSource === "all" || r.source === ui.rSource) &&
+    (ci.kind === "preg" || !ui.rFit || fits(r, ci.phase)) &&
+    (!q || r.title.toLowerCase().includes(q) || r.ingredients.some(i => i.item.toLowerCase().includes(q))));
+  el.innerHTML = list.length ? list.map(r => `<button class="rcard" data-act="open-recipe" data-id="${esc(r.id)}">
+      <div class="row" style="justify-content:space-between"><span class="label">${esc(r.meal)}</span>${pdots(r)}</div>
+      <span class="t">${esc(r.title)}</span>
+      <span class="d num">${r.nut.protein} g protein · ${r.servings} serving${r.servings > 1 ? "s" : ""}${r.time ? " · " + esc(r.time) : ""}</span>
+      <div class="row">${r.source === "mine" ? `<span class="pill">Mine</span>` : ""}${ci.kind === "preg" && pregFlags(r).length ? `<span class="pill warn">Check for pregnancy</span>` : ""}</div>
+    </button>`).join("")
+    : `<div class="card" style="grid-column:1/-1"><h3>No recipes match</h3><p class="muted small">Try a different filter, or add your own recipe.</p></div>`;
+}
+function recipeModal(id, servings){
+  const r = recipeById(id); if (!r) return;
+  const sv = servings || r.servings, f = sv / r.servings;
+  const flags = S.settings.mode === "pregnant" ? pregFlags(r) : [];
+  const days = Array.from({length:7}, (_, i) => addDays(ui.today, i));
+  openModal(`${modalHead(r.title, `<div class="row"><span class="label">${esc(r.meal)}</span>${pdots(r)}${r.source === "mine" ? '<span class="pill">Mine</span>' : ""}</div>`)}
+    <div class="modal-body">
+      <div class="stats num">${[["protein","Protein","g"],["carbs","Carbs","g"],["fat","Fat","g"],["fiber","Fiber","g"]].map(([k, l, u]) => `<div class="stat"><b>${r.nut[k]} ${u}</b><span>${l}</span></div>`).join("")}</div>
+      <p class="small muted num">Per serving · iron ${r.nut.iron} mg · calcium ${r.nut.calcium} mg · vitamin C ${r.nut.vitC} mg${r.estimated ? " · estimated values" : ""}${r.time ? " · " + esc(r.time) : ""}</p>
+      ${flags.length ? `<div class="notice warn"><div><b>Pregnancy check</b>${flags.map(x => `<p class="small">${esc(x)}</p>`).join("")}</div></div>` : ""}
+      ${r.boost ? `<p class="boost">Protein boost: ${esc(r.boost)}</p>` : ""}
+      <div class="section"><div class="row" style="justify-content:space-between"><h3>Ingredients</h3>
+        <div class="row small"><span class="muted">Servings</span><div class="stepper"><button data-act="rserv" data-id="${esc(r.id)}" data-v="${Math.max(1, sv - 1)}" aria-label="Fewer servings">−</button><span class="num">${sv}</span><button data-act="rserv" data-id="${esc(r.id)}" data-v="${Math.min(40, sv + 1)}" aria-label="More servings">+</button></div></div></div>
+        <ul class="ing">${r.ingredients.map(i => `<li>${i.qty != null ? `<b class="num">${esc((fmtQty(i.qty * f) + " " + unitLabel(i.unit, i.qty * f)).trim())}</b> ` : ""}${esc(i.item)}</li>`).join("")}</ul></div>
+      ${r.steps.length ? `<div class="section"><h3>Steps</h3><ol class="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol></div>` : ""}
+      ${r.storage ? `<div class="section" style="gap:4px"><span class="label">Storage & prep ahead</span><p class="small">${esc(r.storage)}</p></div>` : ""}
+      ${r.notes ? `<div class="section" style="gap:4px"><span class="label">Notes</span><p class="small">${esc(r.notes)}</p></div>` : ""}
+      <div class="card section" style="background:var(--surface-2)"><span class="label">Add to plan</span>
+        <div class="row"><select class="input" id="add-day" style="width:auto" aria-label="Day">${days.map(d => `<option value="${d}">${esc(fmtDate(d))}</option>`).join("")}</select>
+        <select class="input" id="add-slot" style="width:auto" aria-label="Meal">${SLOTS.map(s => `<option value="${s.key}" ${s.key === r.meal ? "selected" : ""}>${s.name}</option>`).join("")}</select>
+        <button class="btn btn-sm btn-primary" data-act="add-to-plan" data-id="${esc(r.id)}">Add</button></div></div>
+      <div id="del-confirm"></div>
+    </div>
+    <div class="modal-foot">
+      ${r.source === "mine" ? `<button class="btn btn-ghost btn-danger" data-act="del-recipe-ask" data-id="${esc(r.id)}">Delete</button><button class="btn" data-act="edit-recipe" data-id="${esc(r.id)}">Edit</button>` : `<button class="btn" data-act="dup-recipe" data-id="${esc(r.id)}">Copy to my recipes</button>`}
+      <button class="btn btn-primary" data-act="close-modal">Done</button></div>`);
+}
+
+/* Picker */
+function pickerModal(date, slot){
+  const sl = SLOTS.find(s => s.key === slot), ci = cycleAt(date), current = plannedId(date, slot);
+  const pool = allRecipes().filter(r => r.meal === slot);
+  const fitting = ci.kind === "preg" ? pool : pool.filter(r => fits(r, ci.phase));
+  const other = ci.kind === "preg" ? [] : pool.filter(r => !fits(r, ci.phase));
+  const item = r => `<button class="pickitem" data-act="choose" data-date="${date}" data-slot="${slot}" data-id="${esc(r.id)}" ${r.id === current ? 'aria-current="true"' : ""}>
+      <span class="section" style="gap:2px"><b>${esc(r.title)}</b><span class="small muted num">${r.nut.protein} g protein${r.time ? " · " + esc(r.time) : ""}</span></span>${r.id === current ? '<span class="pill">Current</span>' : pdots(r)}</button>`;
+  openModal(`${modalHead(`${sl.name} · ${fmtDate(date)}`, `<span class="label">${ci.kind === "preg" ? "Week " + ci.week : PHASES[ci.phase].name + " phase"}</span>`)}
+    <div class="modal-body">
+      ${fitting.length ? `<div class="section" style="gap:8px"><span class="label">${ci.kind === "preg" ? "All recipes" : "Fits this phase"}</span><div class="picklist">${fitting.map(item).join("")}</div></div>` : ""}
+      ${other.length ? `<details><summary>Other recipes (${other.length})</summary><div class="picklist" style="margin-top:8px">${other.map(item).join("")}</div></details>` : ""}
+      ${!pool.length ? `<p class="muted">No ${sl.name.toLowerCase()} recipes yet.</p>` : ""}
+    </div>
+    <div class="modal-foot"><button class="btn" data-act="new-recipe">Add a recipe</button>${S.plan.days[date] && S.plan.days[date][slot] ? `<button class="btn" data-act="choose" data-date="${date}" data-slot="${slot}" data-id="">Use suggestion</button>` : ""}<button class="btn btn-primary" data-act="close-modal">Close</button></div>`, {size:"sm"});
+}
+
+/* Recipe editor */
+function editorModal(r){
+  const isNew = !r;
+  r = r || {id:"", title:"", meal:"dinner", phases:[], servings:2, time:"", nut:{protein:0,carbs:0,fat:0,fiber:0,iron:0,calcium:0,vitC:0}, ingredients:[], steps:[], storage:"", notes:"", boost:""};
+  const ingText = r.ingredients.map(i => ((i.qty != null ? fmtQtyPlain(i.qty) + " " : "") + (i.unit ? i.unit + " " : "") + i.item).trim()).join("\n");
+  openModal(`${modalHead(isNew ? "Add a recipe" : "Edit recipe")}
+    <form class="modal-body" id="recipe-form" autocomplete="off">
+      <input type="hidden" id="rf-id" value="${esc(r.id)}"><input type="hidden" id="rf-est" value="${r.estimated ? "1" : ""}">
+      <label class="field"><span>Name</span><input class="input" id="rf-title" required maxlength="140" value="${esc(r.title)}"></label>
+      <div class="grid g3">
+        <label class="field"><span>Meal</span><select class="input" id="rf-meal">${SLOTS.map(s => `<option value="${s.key}" ${r.meal === s.key ? "selected" : ""}>${s.name}</option>`).join("")}</select></label>
+        <label class="field"><span>Servings</span><input class="input num" type="number" min="1" max="40" id="rf-serv" value="${r.servings}"></label>
+        <label class="field"><span>Time</span><input class="input" id="rf-time" placeholder="30 min" value="${esc(r.time)}"></label>
+      </div>
+      <div class="field"><span>Best in these phases</span><div class="checks">${PHASE_KEYS.map(k => `<label class="c-${k}"><input type="checkbox" name="rf-ph" value="${k}" ${r.phases.includes(k) ? "checked" : ""}> ${PHASES[k].name}</label>`).join("")}</div><small>Leave all unchecked for any phase.</small></div>
+      <label class="field"><span>Ingredients, one per line</span><textarea class="input" id="rf-ing" placeholder="1 1/2 cup rolled oats&#10;2 tbsp chia seeds&#10;1 apple">${esc(ingText)}</textarea></label>
+      <label class="field"><span>Steps, one per line</span><textarea class="input" id="rf-steps">${esc(r.steps.join("\n"))}</textarea></label>
+      <div class="field"><span>Nutrition per serving</span><div class="grid g4">${[["protein","Protein (g)"],["carbs","Carbs (g)"],["fat","Fat (g)"],["fiber","Fiber (g)"],["iron","Iron (mg)"],["calcium","Calcium (mg)"],["vitC","Vitamin C (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" step="0.1" min="0" id="rf-${k}" value="${r.nut[k]}"></label>`).join("")}</div>
+        <div class="row"><button type="button" class="btn btn-sm" data-act="estimate">${ICONS.spark}Estimate with Claude</button><span class="small muted" id="est-status"></span></div></div>
+      <label class="field"><span>Protein boost idea</span><input class="input" id="rf-boost" value="${esc(r.boost)}" placeholder="Add 3 oz chicken (+25 g)"></label>
+      <label class="field"><span>Storage & prep ahead</span><input class="input" id="rf-storage" value="${esc(r.storage)}"></label>
+      <label class="field"><span>Notes</span><input class="input" id="rf-notes" value="${esc(r.notes)}"></label>
+    </form>
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Cancel</button><button class="btn btn-primary" data-act="save-recipe">Save recipe</button></div>`);
+  $("#recipe-form").addEventListener("submit", e => { e.preventDefault(); saveRecipeForm(); });
+}
+const fmtQtyPlain = q => Number.isInteger(q) ? String(q) : String(r1(q * 100) / 100);
+function readRecipeForm(){
+  const v = id => $("#" + id).value;
+  return normalizeRecipe({
+    id: v("rf-id") || uid(), title: v("rf-title").trim(), meal: v("rf-meal"), servings: +v("rf-serv"), time: v("rf-time").trim(),
+    phases: [...document.querySelectorAll("input[name=rf-ph]:checked")].map(x => x.value),
+    ingredients: v("rf-ing").split("\n").map(s => s.trim()).filter(Boolean),
+    steps: v("rf-steps").split("\n").map(s => s.trim()).filter(Boolean),
+    nut: Object.fromEntries(["protein","carbs","fat","fiber","iron","calcium","vitC"].map(k => [k, +v("rf-" + k) || 0])),
+    boost: v("rf-boost"), storage: v("rf-storage"), notes: v("rf-notes"), estimated: !!v("rf-est")
+  });
+}
+function saveRecipeForm(){
+  if (!$("#rf-title").value.trim()) { $("#rf-title").focus(); toast("Give the recipe a name.", "error"); return; }
+  const r = readRecipeForm();
+  S.recipes[r.id] = r; persist("recipe_" + r.id);
+  closeModal(true); render(); toast("Recipe saved");
+}
+
+/* Claude-powered scanner */
+function scannerPrompt(kind, text){
+  const phaseHints = PHASE_KEYS.map(k => `${k}: ${Object.values(PHASES[k].foods).flat().slice(0, 18).join(", ")}`).join("\n");
+  return `You convert recipes into structured data for a meal planner that follows the menstrual cycle.
+${kind === "text" ? "Recipe text (may contain several recipes):\n\"\"\"\n" + text + "\n\"\"\"" : "The attached photo(s) show one or more recipes, such as a cookbook page, recipe card, or screenshot."}
+
+Reply with only JSON in this shape:
+{"recipes":[{"title":"string","meal":"breakfast|lunch|dinner|snack","servings":number,"time":"string like 30 min","ingredients":[{"qty":number or null,"unit":"cup|tbsp|tsp|lb|oz|g|can|clove|slice|bunch|scoop|head|pint or empty","item":"ingredient name without the amount","section":"produce|protein|dairy|grains|seeds|frozen|pantry|other"}],"steps":["string"],"storage":"string","notes":"string","phases":["menstrual|follicular|ovulation|luteal"],"nutrition":{"protein":g,"carbs":g,"fat":g,"fiber":g,"iron":mg,"calcium":mg,"vitC":mg},"boost":"string"}]}
+
+Rules:
+- Keep the author's amounts. Convert fractions like 1 1/2 to 1.5. Use null qty for "to taste".
+- nutrition is your estimate PER SERVING from standard food values. Round to whole numbers except iron (one decimal).
+- phases: pick 1-3 phases whose foods match the main ingredients. Phase foods:
+${phaseHints}
+- boost: if protein per serving is under ${targets().perMeal} g, one short idea to raise it with the grams added, else "".
+- Put eggs and milks (including plant milks) in dairy. Nuts, seeds, and nut butters in seeds. Beans, broth, oils, spices in pantry.
+- If there is no recipe, reply {"recipes":[]}.`;
+}
+function chunkText(t, max = 12000){
+  if (t.length <= max) return [t];
+  const parts = t.split(/\n\s*\n/); const out = []; let cur = "";
+  for (const p of parts) { if ((cur + "\n\n" + p).length > max && cur) { out.push(cur); cur = p; } else cur = cur ? cur + "\n\n" + p : p; }
+  if (cur) out.push(cur);
+  return out.flatMap(c => c.length > max ? c.match(new RegExp(`[\\s\\S]{1,${max}}`, "g")) : [c]);
+}
+const SAMPLE_ERR = {
+  not_granted:"Claude access wasn't allowed for this page. You can still add recipes manually or import a file.",
+  sampling_disabled:"Claude isn't available for this account. You can still add recipes manually.",
+  rate_limited:"You've hit a usage limit. Wait a bit and try again.",
+  image_rejected:"That image couldn't be read. Try a JPG or PNG under 20 MB.",
+  images_unavailable:"Photos can't be sent from this view. Paste the recipe text instead.",
+  prompt_too_large:"That's too much text at once. Paste fewer recipes per scan.",
+  refused:"Claude couldn't read that content. Try a different recipe.",
+  invalid_json:"The result came back in an unexpected format. Try again.",
+  session_expired:"Your session expired. Sign in to Claude again and retry.",
+  empty_completion:"No recipe was found. Try a clearer photo or more text."
+};
+let scan = {tab:"text", busy:false, ctl:null, found:[], msg:"", sel:{}};
+async function scannerModal(){
+  const sample = await cap("sample");
+  let limits = null;
+  if (sample) limits = await sample.limits().catch(() => null);
+  const canAI = !!sample, canImg = !!(limits && limits.images);
+  const tabs = [["text","Paste text"]].concat(canImg ? [["photo","Photos"]] : []).concat([["file","Import file"]]);
+  if (!tabs.some(t => t[0] === scan.tab)) scan.tab = "text";
+  const body = scan.found.length ? reviewHTML() : scan.tab === "text" ? (canAI ? `
+      <label class="field"><span>Paste one or more recipes</span><textarea class="input" id="scan-text" style="min-height:200px" placeholder="Paste from a website, notes app, email, or document. Separate recipes with a blank line.">${esc(scan.draft || "")}</textarea>
+      <small>Claude reads the text, splits it into recipes, sorts ingredients for your grocery list, and estimates nutrition. You review everything before saving.</small></label>
+      <div class="row"><button class="btn btn-primary" data-act="run-scan-text" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read recipes</button></div>` :
+      `<p class="muted">The recipe reader uses Claude, which isn't available in this view. Use “Import file” for JSON or CSV, or add recipes manually.</p>`)
+    : scan.tab === "photo" ? `
+      <div class="dropzone" id="dropzone"><b>Choose photos of recipes</b><span class="small muted">Cookbook pages, recipe cards, or screenshots. Up to ${limits.images.maxCount} per scan.</span>
+        <input type="file" id="scan-photos" accept="${esc(limits.images.mediaTypes.join(","))}" multiple aria-label="Recipe photos"></div>
+      <div class="row"><button class="btn btn-primary" data-act="run-scan-photos" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read photos</button></div>` : `
+      <div class="dropzone"><b>Import recipe files</b><span class="small muted">Select as many as you like: Word (.docx), PDF, Excel (.xlsx), CSV, text, or a CycleNourish backup (.json). On iPhone, tap Browse and choose OneDrive or Google Drive.</span>
+        <input type="file" id="scan-file" multiple accept=".json,.csv,.txt,.md,.html,.htm,.docx,.pdf,.xlsx,.xls,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Recipe files"></div>
+      ${canAI ? "" : `<p class="small muted">Without Claude in this view, only CycleNourish backups and CSV or Excel files with a “title” column can be imported.</p>`}
+      <details><summary>CSV columns</summary><p class="small muted" style="margin-top:6px">title, meal, servings, time, ingredients (separate with | or ;), steps (separate with |), phases, protein, carbs, fat, fiber, iron, calcium, vitc</p></details>
+      <div class="row"><button class="btn btn-primary" data-act="run-import" ${scan.busy ? "disabled" : ""}>Import</button></div>`;
+  openModal(`${modalHead(scan.found.length ? "Review recipes" : "Scan or import recipes")}
+    <div class="modal-body">
+      ${scan.found.length ? "" : `<div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${scan.tab === k}" data-act="scan-tab" data-v="${k}">${l}</button>`).join("")}</div>`}
+      ${body}
+      <div class="row" id="scan-status" aria-live="polite">${scan.msg ? `<span class="small ${scan.busy ? "" : "muted"}">${esc(scan.msg)}</span>` : ""}${scan.busy ? `<button class="btn btn-sm" data-act="stop-scan">Stop</button>` : ""}</div>
+    </div>
+    <div class="modal-foot">${scan.found.length ? `<button class="btn" data-act="discard-scan">Discard</button><button class="btn btn-primary" data-act="save-found">Save ${Object.values(scan.sel).filter(Boolean).length} recipe(s)</button>` : `<button class="btn" data-act="close-modal">Close</button>`}</div>`,
+    {onClose:() => { if (scan.ctl) scan.ctl.abort(); }});
+  const dz = $("#dropzone");
+  if (dz) { dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); }); dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+    dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); const inp = $("#scan-photos"); if (inp && e.dataTransfer.files.length) inp.files = e.dataTransfer.files; }); }
+}
+function reviewHTML(){
+  return `${scan.msg ? `<p class="small" style="color:var(--warn)">${esc(scan.msg)}</p>` : ""}<p class="small muted">Found ${scan.found.length} recipe${scan.found.length > 1 ? "s" : ""}${scan.found.filter(r => S.recipes[r.id]).length ? ` (${scan.found.filter(r => S.recipes[r.id]).length} will update recipes you already have)` : ""}. Nutrition is estimated. Uncheck any you don't want, or edit before saving.</p>
+    <div class="picklist">${scan.found.map((r, i) => `<div class="found"><input type="checkbox" data-change="found-sel" data-i="${i}" ${scan.sel[i] ? "checked" : ""} aria-label="Keep ${esc(r.title)}">
+      <div class="section" style="gap:2px;flex:1;min-width:0"><b>${esc(r.title)}</b><span class="small muted num">${esc(r.meal)} · ${r.ingredients.length} ingredients · ${r.nut.protein} g protein · ${r.phases.map(p => PHASES[p].name).join(", ") || "any phase"}</span></div>
+      <button class="btn btn-sm" data-act="edit-found" data-i="${i}">Edit</button></div>`).join("")}</div>`;
+}
+function setScanStatus(msg){ scan.msg = msg; const el = $("#scan-status"); if (el) el.innerHTML = `<span class="small">${esc(msg)}</span>${scan.busy ? `<button class="btn btn-sm" data-act="stop-scan">Stop</button>` : ""}`; }
+async function runScan(jobs, preFound = [], note = ""){
+  const sample = await cap("sample");
+  if (!sample) { toast("The recipe reader isn't available here.", "error"); return; }
+  scan.busy = true; scan.ctl = new AbortController(); const signal = scan.ctl.signal;
+  const found = preFound.slice();
+  for (let i = 0; i < jobs.length; i++) {
+    setScanStatus(`Reading recipes${jobs.length > 1 ? ` (part ${i + 1} of ${jobs.length})` : ""}… each part can take up to a minute.${found.length ? ` ${found.length} found so far.` : ""}`);
+    try {
+      const opts = {signal};
+      if (jobs[i].images) opts.images = jobs[i].images;
+      const res = await sample.json(jobs[i].prompt, opts);
+      const list = Array.isArray(res) ? res : (res && Array.isArray(res.recipes) ? res.recipes : []);
+      list.forEach(x => { if (x && x.title) found.push(normalizeRecipe(Object.assign({}, x, {id:uid(), estimated:true}))); });
+    } catch (e) {
+      if (e && e.code === "cancelled") break;
+      scan.busy = false; scan.ctl = null;
+      setScanStatus(SAMPLE_ERR[e && e.code] || "Something went wrong reading that. Try again.");
+      if (!found.length) return;
+      break;
+    }
+  }
+  scan.busy = false; scan.ctl = null;
+  if (!found.length) { setScanStatus((signal.aborted ? "Stopped." : "No recipes found. Try clearer text or a sharper photo.") + (note ? " " + note : "")); return; }
+  scan.found = found; scan.sel = Object.fromEntries(found.map((_, i) => [i, true])); scan.msg = note;
+  scannerModal();
+}
+function parseCSV(text){
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true; else if (c === ",") { row.push(cur); cur = ""; } else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; } else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function csvToRecipes(text){
+  const rows = parseCSV(text); if (rows.length < 2) return [];
+  const h = rows[0].map(x => x.trim().toLowerCase());
+  const col = (...names) => h.findIndex(x => names.includes(x));
+  const c = {title:col("title","name","recipe"), meal:col("meal","type","category","course"), serv:col("servings","serves","yield"), time:col("time","total time","prep time"),
+    ing:col("ingredients","ingredient"), steps:col("steps","directions","instructions","method"), phases:col("phases","phase"),
+    protein:col("protein"), carbs:col("carbs","carbohydrates"), fat:col("fat"), fiber:col("fiber"), iron:col("iron"), calcium:col("calcium"), vitC:col("vitc","vitamin c")};
+  if (c.title < 0) return [];
+  return rows.slice(1).map(r => {
+    const g = k => c[k] >= 0 ? (r[c[k]] || "").trim() : "";
+    const meal = g("meal").toLowerCase();
+    return normalizeRecipe({id:uid(), title:g("title"), meal:["breakfast","lunch","dinner","snack"].find(m => meal.includes(m)) || "dinner", servings:+g("serv") || 2, time:g("time"),
+      ingredients:g("ing").split(/\s*[|;\n]\s*/).filter(Boolean), steps:g("steps").split(/\s*[|\n]\s*/).filter(Boolean),
+      phases:g("phases").toLowerCase().split(/[,|; ]+/).filter(p => PHASES[p]),
+      nut:Object.fromEntries(["protein","carbs","fat","fiber","iron","calcium","vitC"].map(k => [k, +g(k) || 0])), estimated:!g("protein")});
+  }).filter(r => r.title && r.title !== "Untitled recipe");
+}
+const LIBS = {
+  jszip:"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+  pdfworker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js",
+  pdf:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js",
+  xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+};
+const libLoads = {};
+function loadScript(url){
+  if (!libLoads[url]) libLoads[url] = new Promise((res, rej) => { const el = document.createElement("script"); el.src = url; el.onload = res; el.onerror = () => { delete libLoads[url]; rej(new Error("load")); }; document.head.appendChild(el); });
+  return libLoads[url];
+}
+const decodeXml = t => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+async function docxText(file){
+  await loadScript(LIBS.jszip);
+  const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
+  const doc = zip.file("word/document.xml");
+  if (!doc) throw new Error("not docx");
+  const xml = await doc.async("string");
+  return decodeXml(xml.replace(/<w:tab\/>/g, "\t").replace(/<w:br[^>]*\/>/g, "\n").replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, ""));
+}
+async function pdfText(file){
+  await loadScript(LIBS.pdfworker); await loadScript(LIBS.pdf);  // worker script first so pdf.js runs it on the page
+  const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = LIBS.pdfworker;
+  const pdf = await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const out = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, 80); i++) {
+    const tc = await (await pdf.getPage(i)).getTextContent();
+    out.push(tc.items.map(it => it.str + (it.hasEOL ? "\n" : " ")).join(""));
+  }
+  return out.join("\n\n");
+}
+async function xlsxSheets(file){
+  await loadScript(LIBS.xlsx);
+  const wb = window.XLSX.read(await file.arrayBuffer(), {type:"array"});
+  return wb.SheetNames.map(n => ({name:n, csv:window.XLSX.utils.sheet_to_csv(wb.Sheets[n], {blankrows:false})})).filter(x => x.csv.trim());
+}
+async function runImport(){
+  const inp = $("#scan-file"); const files = inp ? [...inp.files] : [];
+  if (!files.length) { setScanStatus("Choose at least one file."); return; }
+  scan.busy = true;
+  const found = [], texts = [], skipped = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i], name = file.name.toLowerCase();
+    setScanStatus(`Opening ${file.name} (${i + 1} of ${files.length})…`);
+    try {
+      if (name.endsWith(".json")) {
+        const data = JSON.parse(await file.text());
+        if (data && data.cyclenourishBackup) { scan.busy = false; restoreBackup(data); return; }
+        const list = Array.isArray(data) ? data : Array.isArray(data.recipes) ? data.recipes : [];
+        const got = list.filter(x => x && x.title).map(x => normalizeRecipe(Object.assign({}, x, {id: x.id && !BUILTIN.some(b => b.id === String(x.id)) ? String(x.id) : uid()})));
+        got.length ? found.push(...got) : skipped.push(file.name);
+      } else if (name.endsWith(".csv")) {
+        const text = await file.text(), got = csvToRecipes(text);
+        got.length ? found.push(...got) : texts.push(text);
+      } else if (/\.xlsx?$/.test(name)) {
+        for (const sh of await xlsxSheets(file)) { const got = csvToRecipes(sh.csv); got.length ? found.push(...got) : texts.push(`Sheet "${sh.name}":\n${sh.csv}`); }
+      } else if (name.endsWith(".docx")) {
+        texts.push(await docxText(file));
+      } else if (name.endsWith(".pdf")) {
+        const t = await pdfText(file);
+        if (t.replace(/\s/g, "").length < 80) skipped.push(file.name + " (scanned PDF: use Photos with screenshots of its pages)"); else texts.push(t);
+      } else if (/\.(txt|md|html?)$/.test(name) || file.type.startsWith("text/")) {
+        let t = await file.text();
+        if (/\.html?$/.test(name)) { const d = new DOMParser().parseFromString(t, "text/html"); t = d.body ? (d.body.innerText || d.body.textContent) : t; }
+        texts.push(t);
+      } else skipped.push(file.name + (name.endsWith(".doc") ? " (old Word format: save it as .docx)" : " (unsupported type)"));
+    } catch (e) {
+      skipped.push(file.name + (e && e.message === "load" ? " (couldn't load the file reader; check your connection)" : " (couldn't be read)"));
+    }
+  }
+  scan.busy = false;
+  const plain = texts.map(t => t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim()).filter(Boolean);
+  const note = skipped.length ? `Skipped: ${skipped.join("; ")}.` : "";
+  if (plain.length) {
+    const sample = await cap("sample");
+    if (!sample) {
+      if (!found.length) { setScanStatus("Reading Word, PDF, and text recipes needs Claude, which isn't available in this view. " + note); return; }
+    } else {
+      const chunks = plain.flatMap(t => chunkText(t));
+      runScan(chunks.map(c => ({prompt:scannerPrompt("text", c)})), found, note);
+      return;
+    }
+  }
+  if (!found.length) { setScanStatus("No recipes found. " + note); return; }
+  scan.found = found; scan.sel = Object.fromEntries(found.map((_, i) => [i, true])); scan.msg = note; scannerModal();
+}
+async function estimateNutrition(){
+  const sample = await cap("sample"), st = $("#est-status");
+  if (!sample) { st.textContent = "Claude isn't available in this view."; return; }
+  const ing = $("#rf-ing").value.trim();
+  if (!ing) { st.textContent = "Add ingredients first."; return; }
+  st.textContent = "Estimating…";
+  try {
+    const res = await sample.json(`Estimate nutrition PER SERVING for this recipe, which makes ${+$("#rf-serv").value || 2} servings.
+Ingredients:
+${ing}
+Reply with only JSON: {"protein":g,"carbs":g,"fat":g,"fiber":g,"iron":mg,"calcium":mg,"vitC":mg}. Whole numbers, iron with one decimal.`, {modelTier:"quick"});
+    for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) if (res && res[k] != null && !isNaN(+res[k])) $("#rf-" + k).value = +res[k];
+    $("#rf-est").value = "1";
+    st.textContent = "Estimated. Adjust if you know better values.";
+  } catch (e) { st.textContent = SAMPLE_ERR[e && e.code] || "Couldn't estimate. Try again."; }
+}
+
+/* Grocery */
+function viewGrocery(){
+  const g = buildGrocery(), days = weekDays();
+  const checked = S.grocery.checked;
+  const main = g.items.filter(i => !i.staple), staples = g.items.filter(i => i.staple);
+  const itemHTML = it => { const id = "g-" + it.key.replace(/[^a-z0-9]+/g, "-"); const on = !!checked[it.key];
+    return `<li class="gitem ${on ? "checked" : ""}"><input type="checkbox" id="${esc(id)}" data-change="gcheck" data-key="${esc(it.key)}" ${on ? "checked" : ""}>
+      <label for="${esc(id)}"><span class="n"><span class="q num">${esc(fmtAmounts(it))}</span> ${esc(countName(it))}</span><span class="u">${esc([...it.recipes].slice(0, 2).join(", "))}${it.recipes.size > 2 ? ` +${it.recipes.size - 2} more` : ""}</span></label></li>`; };
+  const groups = SECTIONS.map(([k, l]) => { const list = main.filter(i => i.section === k).sort((a, b) => a.name.localeCompare(b.name));
+    return list.length ? `<div class="card section"><div class="row" style="justify-content:space-between"><h3>${l}</h3><span class="small muted">${list.filter(i => checked[i.key]).length}/${list.length}</span></div><ul class="glist">${list.map(itemHTML).join("")}</ul></div>` : ""; }).join("");
+  const extras = S.grocery.extras;
+  const nChecked = Object.values(checked).filter(Boolean).length + extras.filter(x => x.done).length;
+  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Groceries</span><h1>${esc(fmtDate(days[0], {month:"short", day:"numeric"}))} – ${esc(fmtDate(days[6], {month:"short", day:"numeric"}))}</h1>
+      <p class="small muted num">Built from ${g.meals} planned meals for ${S.settings.household} ${S.settings.household > 1 ? "people" : "person"}. Amounts round up to half batches.</p></div>
+      <div class="row">
+        <label class="row small" style="gap:6px"><span class="muted">People</span><select class="input" style="width:auto;padding:6px 8px" data-set="household" id="hh-select">${[1,2,3,4,5,6].map(n => `<option value="${n}" ${S.settings.household == n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+        <button class="icon-btn" data-act="week" data-dir="-1" aria-label="Previous week" ${ui.weekOffset <= 0 ? "disabled" : ""}>${ICONS.left}</button><button class="icon-btn" data-act="week" data-dir="1" aria-label="Next week" ${ui.weekOffset >= 3 ? "disabled" : ""}>${ICONS.right}</button>
+        <button class="btn btn-sm" data-act="copy-list">Copy list</button>
+        <button class="btn btn-sm" data-act="clear-checked" ${nChecked ? "" : "disabled"}>Clear checked</button></div></div>
+    <div class="cols">${groups}
+      <div class="card section"><h3>Extras</h3>
+        <ul class="glist">${extras.map(x => `<li class="gitem ${x.done ? "checked" : ""}"><input type="checkbox" id="x-${esc(x.id)}" data-change="xcheck" data-id="${esc(x.id)}" ${x.done ? "checked" : ""}><label for="x-${esc(x.id)}"><span class="n">${esc(x.name)}</span></label><button class="icon-btn" data-act="del-extra" data-id="${esc(x.id)}" aria-label="Remove ${esc(x.name)}">${ICONS.trash}</button></li>`).join("")}</ul>
+        <form class="row" id="extra-form"><input class="input" id="extra-name" placeholder="Add an item, like sparkling water" style="flex:1;min-width:160px" aria-label="Item to add"><button class="btn btn-sm" type="submit">Add</button></form></div>
+      ${staples.length ? `<div class="card section"><div class="row" style="justify-content:space-between"><h3>Check your pantry</h3><span class="small muted">Staples</span></div><ul class="glist">${staples.sort((a, b) => a.name.localeCompare(b.name)).map(itemHTML).join("")}</ul></div>` : ""}
+    </div>`;
+}
+function countName(it){
+  const n = it.name, keys = Object.keys(it.amounts);
+  if (keys.length === 1 && keys[0] === "" && Math.ceil(it.amounts[""]) > 1 && !/s$/i.test(n)) return /(potato|tomato)$/i.test(n) ? n + "es" : n + "s";
+  return n;
+}
+function groceryText(){
+  const g = buildGrocery(), ch = S.grocery.checked, lines = [`Groceries ${fmtDate(weekDays()[0])} – ${fmtDate(weekDays()[6])}`];
+  for (const [k, l] of SECTIONS) { const list = g.items.filter(i => !i.staple && i.section === k && !ch[i.key]); if (list.length) { lines.push("", l.toUpperCase()); list.forEach(i => lines.push(`- ${fmtAmounts(i)} ${countName(i)}`)); } }
+  const ex = S.grocery.extras.filter(x => !x.done); if (ex.length) { lines.push("", "EXTRAS"); ex.forEach(x => lines.push("- " + x.name)); }
+  const st = g.items.filter(i => i.staple && !ch[i.key]); if (st.length) { lines.push("", "CHECK PANTRY"); st.forEach(i => lines.push("- " + i.name)); }
+  return lines.join("\n");
+}
+async function copyText(text, label){
+  try { await navigator.clipboard.writeText(text); toast(label + " copied"); }
+  catch { openModal(`${modalHead("Copy " + label.toLowerCase())}<div class="modal-body"><p class="small muted">Copying isn't allowed here. Select the text below and copy it.</p><textarea class="input" id="copy-area" style="min-height:300px" readonly>${esc(text)}</textarea></div><div class="modal-foot"><button class="btn btn-primary" data-act="close-modal">Done</button></div>`); const a = $("#copy-area"); a.focus(); a.select(); }
+}
+
+/* Log */
+function viewLog(){
+  const d = ui.logDate, log = getLog(d), t = totals(d), tg = targets();
+  const order = Object.fromEntries(SLOTS.map((s, i) => [s.key, i]));
+  const meals = log.meals.slice().sort((a, b) => (order[a.slot] ?? 9) - (order[b.slot] ?? 9));
+  const b = brandInfo();
+  const hist = Array.from({length:7}, (_, i) => addDays(d, i - 6));
+  const maxP = Math.max(tg.protein, ...hist.map(x => totals(x).protein)) * 1.1;
+  const W = 340, H = 140, bw = 30, gap = (W - 30 - bw * 7) / 6;
+  const chart = `<svg class="chart" viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Protein for the last 7 days" style="width:100%;max-width:520px">
+    <line x1="30" x2="${W}" y1="${H - tg.protein / maxP * H}" y2="${H - tg.protein / maxP * H}" stroke="var(--muted)" stroke-dasharray="3 3"/>
+    <text x="0" y="${H - tg.protein / maxP * H + 3}">${tg.protein}g</text>
+    ${hist.map((x, i) => { const v = totals(x).protein, h = v / maxP * H, xx = 30 + i * (bw + gap);
+      return `<rect x="${xx}" y="${H - h}" width="${bw}" height="${Math.max(h, 1)}" rx="5" fill="${v >= tg.protein ? "var(--ok)" : "var(--accent)"}" opacity="${x === d ? 1 : .7}"/><text x="${xx + bw / 2}" y="${H + 16}" text-anchor="middle">${esc(fmtDate(x, {weekday:"narrow"}))}</text>`; }).join("")}
+    <line x1="30" x2="${W}" y1="${H}" y2="${H}" stroke="var(--line)"/></svg>`;
+  const suppRows = prenatalOn() ? [["Folate","folate","mcg"],["Vitamin D","vitD","IU"],["Vitamin B12","vitB12","mcg"]].concat(tg.dha ? [["DHA","dha","mg"]] : [])
+    .map(([l, k, u]) => `<tr><td>${l}</td><td class="n">${log.prenatal ? (+b[k] || 0) : 0} ${u}</td><td class="n">${tg[k]} ${u}</td></tr>`).join("") : "";
+  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Log</span><h1>Daily nutrition</h1></div>
+      <div class="row"><div class="datenav"><button class="icon-btn" data-act="logday" data-dir="-1" aria-label="Previous day">${ICONS.left}</button><span class="d">${esc(fmtDate(d, {weekday:"long", month:"short", day:"numeric"}))}</span><button class="icon-btn" data-act="logday" data-dir="1" aria-label="Next day" ${d >= ui.today ? "disabled" : ""}>${ICONS.right}</button></div>
+      ${d !== ui.today ? `<button class="btn btn-sm" data-act="logtoday">Today</button>` : ""}<button class="btn btn-primary" data-act="add-food">Add food</button></div></div>
+    <div class="card grid g4">${[meter("Protein", t.protein, tg.protein, "g", ""), meter("Fiber", t.fiber, tg.fiber, "g", ""), meter("Iron", t.iron, tg.iron, "mg", t.suppIron ? `incl. ${t.suppIron} mg prenatal` : "", t.iron > tg.ironUL), meter("Calcium", t.calcium, tg.calcium, "mg", ""),
+      meter("Vitamin C", t.vitC, tg.vitC, "mg", ""), meter("Carbs", t.carbs, 0, "g", "No target"), meter("Fat", t.fat, 0, "g", "No target")].join("")}</div>
+    ${t.iron > tg.ironUL ? `<div class="notice warn"><div><b>Iron is above the 45 mg upper limit.</b><p class="small muted">Check your supplement dose with your provider.</p></div></div>` : ""}
+    <section class="card section"><h2>Food eaten</h2>
+      ${meals.length ? `<div class="table-wrap"><table><thead><tr><th>Meal</th><th>Food</th><th class="n">Protein</th><th class="n">Fiber</th><th class="n">Iron</th><th class="n">Calcium</th><th><span class="sr">Remove</span></th></tr></thead><tbody>
+        ${meals.map(m => `<tr><td>${esc((SLOTS.find(s => s.key === m.slot) || {name:m.slot}).name)}</td><td>${esc(m.name)}${m.servings && m.servings !== 1 ? ` <span class="muted">× ${m.servings}</span>` : ""}</td><td class="n">${r1(m.protein)} g</td><td class="n">${r1(m.fiber)} g</td><td class="n">${r1(m.iron)} mg</td><td class="n">${Math.round(m.calcium || 0)} mg</td><td><button class="icon-btn" data-act="del-meal" data-id="${esc(m.id)}" aria-label="Remove ${esc(m.name)}">${ICONS.trash}</button></td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="muted">Nothing logged ${d === ui.today ? "today" : "this day"}. Tap “I ate this” on Today's meals, or add food here.</p>`}
+    </section>
+    ${prenatalOn() ? prenatalCard(d) + `<section class="card section"><h3>From your prenatal</h3><div class="table-wrap"><table><thead><tr><th>Nutrient</th><th class="n">Taken</th><th class="n">Daily target</th></tr></thead><tbody>${suppRows}</tbody></table></div><p class="small muted">Values are approximate. Check your bottle's label and edit them under Profile if they differ.</p></section>` : ""}
+    <section class="card section"><h3>Protein, last 7 days</h3>${chart}</section>`;
+}
+function foodModal(){
+  const all = allRecipes();
+  openModal(`${modalHead("Add food")}
+    <form class="modal-body" id="food-form" autocomplete="off">
+      <div class="grid g2"><label class="field"><span>Meal</span><select class="input" id="ff-slot">${SLOTS.map(s => `<option value="${s.key}">${s.name}</option>`).join("")}</select></label>
+      <label class="field"><span>From a recipe (optional)</span><select class="input" id="ff-recipe" data-change="ff-recipe"><option value="">Something else</option>${all.map(r => `<option value="${esc(r.id)}">${esc(r.title)}</option>`).join("")}</select></label></div>
+      <div class="grid g2"><label class="field"><span>Food name</span><input class="input" id="ff-name" required placeholder="Greek yogurt with berries"></label>
+      <label class="field"><span>Servings</span><input class="input num" type="number" id="ff-serv" min="0.25" step="0.25" value="1" data-change="ff-recipe"></label></div>
+      <div class="grid g4">${[["protein","Protein (g)"],["carbs","Carbs (g)"],["fat","Fat (g)"],["fiber","Fiber (g)"],["iron","Iron (mg)"],["calcium","Calcium (mg)"],["vitC","Vitamin C (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" step="0.1" min="0" id="ff-${k}" value="0"></label>`).join("")}</div>
+      <p class="small muted">Totals are for everything you ate, not per serving.</p>
+    </form>
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Cancel</button><button class="btn btn-primary" data-act="save-food">Add to log</button></div>`);
+  $("#food-form").addEventListener("submit", e => { e.preventDefault(); saveFood(); });
+}
+function saveFood(){
+  const name = $("#ff-name").value.trim();
+  if (!name) { $("#ff-name").focus(); toast("Add a food name.", "error"); return; }
+  const d = ui.logDate, log = clone(getLog(d));
+  const m = {id:uid(), slot:$("#ff-slot").value, name, recipeId:$("#ff-recipe").value || null, servings:+$("#ff-serv").value || 1};
+  for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) m[k] = r1(+$("#ff-" + k).value || 0);
+  log.meals.push(m); saveLog(d, log); closeModal(true); render(); toast("Added to log");
+}
+
+/* Profile */
+function viewProfile(){
+  const s = S.settings, tg = targets(), b = brandInfo();
+  const starts = (s.periodStarts || []).slice().sort().reverse();
+  const gaps = starts.slice(0, 4).map((x, i, a) => i < a.length - 1 ? diffDays(x, a[i + 1]) : null).filter(x => x && x >= 15 && x <= 60);
+  const avg = gaps.length ? Math.round(gaps.reduce((a, c) => a + c, 0) / gaps.length) : null;
+  const field = (k, label, type = "number", attrs = "", help = "") => `<label class="field"><span>${label}</span><input class="input ${type === "number" ? "num" : ""}" type="${type}" id="set-${k}" data-set="${k}" value="${esc(s[k])}" ${attrs}>${help ? `<small>${help}</small>` : ""}</label>`;
+  return `<div class="section" style="gap:4px"><span class="label">Profile & data</span><h1>Your settings</h1></div>
+    <section class="card section"><h2>What are you tracking for?</h2><p class="small muted">Switch any time. Your recipes, plan, and logs stay the same.</p>
+      <div class="modecards">${Object.entries(MODES).map(([k, m]) => `<button class="modecard" data-act="mode" data-mode="${k}" aria-pressed="${s.mode === k}"><b>${m.name}</b><span>${m.desc}</span></button>`).join("")}</div></section>
+    ${s.mode === "pregnant" ? `<section class="card section"><h2>Pregnancy</h2><div class="grid g2">${field("dueDate", "Due date", "date", "", "Used to count weeks. If blank, weeks count from your last period.")}${field("lastPeriod", "First day of last period", "date", `max="${ui.today}"`)}</div></section>` :
+    `<section class="card section"><h2>Your cycle</h2>
+      <div class="grid g3">${field("lastPeriod", "First day of last period", "date", `max="${ui.today}"`)}${field("cycleLen", "Cycle length (days)", "number", 'min="21" max="45"', "Typical range is 21–35.")}${field("periodLen", "Period length (days)", "number", 'min="2" max="10"')}</div>
+      ${starts.length ? `<div class="section" style="gap:6px"><span class="label">Logged period starts</span><div class="row">${starts.slice(0, 8).map(x => `<span class="pill num">${esc(fmtDate(x, {month:"short", day:"numeric", year:"numeric"}))}<button class="icon-btn" style="padding:0" data-act="del-start" data-d="${x}" aria-label="Remove ${esc(fmtDate(x))}">${ICONS.close}</button></span>`).join("")}</div>
+        ${avg && avg !== s.cycleLen ? `<div class="row"><span class="small">Your recent average is <b>${avg} days</b>.</span><button class="btn btn-sm" data-act="use-avg" data-v="${avg}">Use ${avg} days</button></div>` : ""}</div>` : ""}
+      ${s.phaseOverride ? `<div class="notice"><div>Phase is set manually to <b>${PHASES[s.phaseOverride].name}</b>.</div><button class="btn btn-sm" data-act="clear-override">Use calculated phase</button></div>` : ""}
+    </section>`}
+    <section class="card section"><h2>Goals</h2>
+      <div class="grid g3">${field("proteinGoal", "Protein per main meal (g)", "number", 'min="10" max="120"', `Daily target: ${tg.protein} g`)}${field("fiberGoal", "Fiber per day (g)", "number", 'min="10" max="80"')}${field("household", "People you cook for", "number", 'min="1" max="12"', "Scales the grocery list.")}</div>
+      <label class="field"><span>Health focus</span><input class="input" id="set-healthFocus" data-set="healthFocus" value="${esc(s.healthFocus)}" placeholder="Psoriasis, PCOS, anti-inflammatory eating"><small>Shown in the sidebar as a reminder.</small></label>
+      <p class="small muted">Iron target: ${tg.iron} mg${s.mode === "pregnant" ? " (pregnancy)" : ""} · Calcium ${tg.calcium} mg · Vitamin C ${tg.vitC} mg · Folate ${tg.folate} mcg</p></section>
+    <section class="card section"><h2>Prenatal vitamin</h2>
+      ${s.mode === "avoid" ? `<label class="row"><input type="checkbox" id="set-takesPrenatal" data-set="takesPrenatal" ${s.takesPrenatal ? "checked" : ""}> <span>I take a prenatal or multivitamin</span></label>` : `<p class="small muted">Tracked daily in this mode. Most guidance suggests 400 mcg folic acid daily when trying to conceive.</p>`}
+      ${prenatalOn() ? `<label class="field"><span>Brand</span><select class="input" id="set-prenatalBrand" data-set="prenatalBrand">${Object.entries(BRANDS).map(([k, v]) => `<option value="${k}" ${s.prenatalBrand === k ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select><small>Listed values are approximate. Formulas change, so check your label.</small></label>
+        ${s.prenatalBrand === "custom" ? `<div class="grid g3">${[["iron","Iron (mg)"],["folate","Folate (mcg DFE)"],["vitD","Vitamin D (IU)"],["vitB12","B12 (mcg)"],["calcium","Calcium (mg)"],["dha","DHA (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" min="0" step="0.1" id="set-cp-${k}" data-set="customPrenatal.${k}" value="${s.customPrenatal[k]}"></label>`).join("")}</div>` :
+        `<p class="small num">Per dose: iron ${b.iron} mg · folate ${b.folate} mcg · vitamin D ${b.vitD} IU · B12 ${b.vitB12} mcg · calcium ${b.calcium} mg · DHA ${b.dha} mg. <button class="link" data-act="customize-brand">Edit values</button></p>`}` : ""}
+    </section>
+    <section class="card section"><h2>Your data</h2>
+      <p>${Store.kind === "account" ? "Your recipes, plan, and logs are saved to your Claude account. Only you can see them, and they sync wherever you open this app while signed in." : "Your data is saved in this browser only. Clearing browser data will erase it, so export a backup now and then."}</p>
+      <p class="small muted">To keep a copy in OneDrive or Google Drive, tap Export backup. On iPhone, choose Save to Files, then OneDrive or Google Drive. To restore, use Import backup and pick that file.${s.lastBackup ? ` Last backup: ${esc(fmtDate(s.lastBackup, {month:"short", day:"numeric", year:"numeric"}))}.` : " No backup yet."}</p>
+      <div class="row"><button class="btn" data-act="export">Export backup</button><button class="btn" data-act="scan-import">Import backup or recipes</button><button class="btn btn-ghost btn-danger" data-act="erase-ask">Erase all data</button></div>
+      <div id="erase-confirm"></div></section>`;
+}
+function exportData(){
+  return {cyclenourishBackup:1, exportedAt:new Date().toISOString(), settings:S.settings, plan:S.plan, grocery:S.grocery, recipes:Object.values(S.recipes), logs:Object.values(S.logs)};
+}
+async function doExport(){
+  const json = JSON.stringify(exportData(), null, 2);
+  const dl = await cap("downloads");
+  if (dl) {
+    try { await dl.save({filename:`cyclenourish-backup-${ui.today}.json`, data:json}); S.settings.lastBackup = ui.today; persist("settings"); render(); toast("Backup saved"); return; }
+    catch (e) { if (e && e.code === "declined") return; }
+  }
+  copyText(json, "Backup");
+}
+function restoreBackup(data){
+  if (data.settings) { S.settings = Object.assign(clone(DEFAULT_SETTINGS), data.settings); persist("settings"); }
+  if (data.plan) { S.plan = {days:data.plan.days || {}}; persist("plan"); }
+  if (data.grocery) { S.grocery = {checked:data.grocery.checked || {}, extras:data.grocery.extras || []}; persist("grocery"); }
+  let n = 0;
+  (data.recipes || []).forEach(x => { if (x && x.title) { const r = normalizeRecipe(x); S.recipes[r.id] = r; persist("recipe_" + r.id); n++; } });
+  (data.logs || []).forEach(x => { if (x && isDate(x.date)) { S.logs[x.date] = {date:x.date, meals:x.meals || [], prenatal:!!x.prenatal}; persist("log_" + x.date); } });
+  closeModal(true); render(); toast(`Backup restored: ${n} recipes and ${(data.logs || []).length} days of logs`);
+}
+
+/* ---------- Events ---------- */
+function go(view){ ui.view = view; if (location.hash.slice(1) !== view) { try { history.replaceState(null, "", "#" + view); } catch { location.hash = view; } } render(); $("#main").focus({preventScroll:true}); window.scrollTo(0, 0); }
+function needReady(){ if (!Store.ready) { toast("Still loading your data. Try again in a moment."); return false; } return true; }
+const ACT = {
+  "go": el => go(el.dataset.view),
+  "close-modal": () => closeModal(),
+  "mode": el => { if (!needReady()) return; S.settings.mode = el.dataset.mode; persist("settings"); render(); toast("Mode: " + MODES[el.dataset.mode].name); },
+  "finish-setup": () => {
+    if (!needReady()) return;
+    const s = S.settings;
+    if (s.mode === "pregnant") { const due = $("#setup-due").value; if (!isDate(due)) { toast("Add your due date.", "error"); return; } s.dueDate = due; }
+    else { const last = $("#setup-last").value; if (!isDate(last)) { toast("Add the first day of your last period.", "error"); return; }
+      s.lastPeriod = last; s.periodStarts = [...new Set([...(s.periodStarts || []), last])]; s.cycleLen = clamp($("#setup-len").value, 21, 45); s.periodLen = clamp($("#setup-plen").value, 2, 10); }
+    s.setupDone = true; persist("settings"); render(); toast("Personalized to your cycle");
+  },
+  "period-today": () => { if (!needReady()) return; const s = S.settings, t = ui.today;
+    if (isDate(s.lastPeriod) && s.lastPeriod !== t && diffDays(t, s.lastPeriod) < 10) { toast("Your last period started less than 10 days ago. Edit dates in Profile if needed."); return; }
+    s.lastPeriod = t; s.periodStarts = [...new Set([...(s.periodStarts || []), t])]; s.phaseOverride = ""; s.setupDone = true; persist("settings"); render(); toast("Logged. Day 1 starts today."); },
+  "clear-override": () => { S.settings.phaseOverride = ""; persist("settings"); render(); },
+  "del-start": el => { const s = S.settings; s.periodStarts = (s.periodStarts || []).filter(x => x !== el.dataset.d); if (s.lastPeriod === el.dataset.d) s.lastPeriod = s.periodStarts.slice().sort().pop() || ""; persist("settings"); render(); },
+  "use-avg": el => { S.settings.cycleLen = +el.dataset.v; persist("settings"); render(); toast(`Cycle length set to ${el.dataset.v} days`); },
+  "open-recipe": el => recipeModal(el.dataset.id),
+  "rserv": el => recipeModal(el.dataset.id, +el.dataset.v),
+  "pick": el => pickerModal(el.dataset.date, el.dataset.slot),
+  "choose": el => { if (!needReady()) return; setPlan(el.dataset.date, el.dataset.slot, el.dataset.id); closeModal(true); render(); toast(el.dataset.id ? "Meal updated" : "Back to the suggestion"); },
+  "add-to-plan": el => { if (!needReady()) return; const d = $("#add-day").value, s = $("#add-slot").value; setPlan(d, s, el.dataset.id); render(); toast(`Added to ${SLOTS.find(x => x.key === s).name.toLowerCase()} on ${fmtDate(d)}`); },
+  "toggle-log": el => { if (!needReady()) return; const {date, slot, id} = el.dataset; const log = clone(getLog(date));
+    const i = log.meals.findIndex(m => m.recipeId === id && m.slot === slot);
+    if (i >= 0) { log.meals.splice(i, 1); saveLog(date, log); toast("Removed from log"); } else { logRecipe(date, slot, id); toast("Logged 1 serving"); }
+    render(); },
+  "week": el => { ui.weekOffset = clamp(ui.weekOffset + +el.dataset.dir, 0, 3); render(); },
+  "reset-week": () => { weekDays().forEach(d => delete S.plan.days[d]); persist("plan"); render(); toast("Week reset to suggestions"); },
+  "rmeal": el => { ui.rMeal = el.dataset.v; render(); },
+  "rsource": el => { ui.rSource = el.dataset.v; render(); },
+  "rfit": () => { ui.rFit = !ui.rFit; render(); },
+  "new-recipe": () => editorModal(null),
+  "edit-recipe": el => editorModal(recipeById(el.dataset.id)),
+  "dup-recipe": el => { const r = clone(recipeById(el.dataset.id)); r.id = uid(); r.title += " (my version)"; editorModal(normalizeRecipe(r)); },
+  "save-recipe": () => saveRecipeForm(),
+  "estimate": () => estimateNutrition(),
+  "del-recipe-ask": el => { $("#del-confirm").innerHTML = `<div class="notice warn"><div>Delete this recipe? Planned meals using it go back to suggestions.</div><button class="btn btn-sm btn-danger" data-act="del-recipe" data-id="${esc(el.dataset.id)}">Delete recipe</button></div>`; },
+  "del-recipe": el => { delete S.recipes[el.dataset.id]; persist("recipe_" + el.dataset.id); closeModal(true); render(); toast("Recipe deleted"); },
+  "scan": () => { scan.found = []; scan.msg = ""; scannerModal(); },
+  "scan-import": () => { scan.found = []; scan.msg = ""; scan.tab = "file"; scannerModal(); },
+  "scan-tab": el => { const ta = $("#scan-text"); if (ta) scan.draft = ta.value; scan.tab = el.dataset.v; scan.msg = ""; scannerModal(); },
+  "run-scan-text": () => { const t = $("#scan-text").value.trim(); scan.draft = t; if (!t) { setScanStatus("Paste a recipe first."); return; } runScan(chunkText(t).map(c => ({prompt:scannerPrompt("text", c)}))); },
+  "run-scan-photos": async () => { const files = [...($("#scan-photos").files || [])]; if (!files.length) { setScanStatus("Choose at least one photo."); return; }
+    const sample = await cap("sample"); const lim = sample && await sample.limits().catch(() => null); const max = (lim && lim.images && lim.images.maxCount) || 1;
+    const jobs = []; for (let i = 0; i < files.length; i += max) jobs.push({prompt:scannerPrompt("photo"), images:files.slice(i, i + max)}); runScan(jobs); },
+  "run-import": () => runImport(),
+  "stop-scan": () => { if (scan.ctl) scan.ctl.abort(); },
+  "discard-scan": () => { scan.found = []; scan.msg = ""; scannerModal(); },
+  "edit-found": el => { const i = +el.dataset.i; const r = scan.found[i]; editorModal(r);
+    const save = $("[data-act=save-recipe]"); save.dataset.act = "save-found-one"; save.dataset.i = i; save.textContent = "Save changes"; },
+  "save-found-one": el => { const i = +el.dataset.i; const r = readRecipeForm(); scan.found[i] = r; scannerModal(); },
+  "save-found": () => { if (!needReady()) return; let n = 0; scan.found.forEach((r, i) => { if (scan.sel[i]) { S.recipes[r.id] = r; persist("recipe_" + r.id); n++; } });
+    scan.found = []; scan.draft = ""; closeModal(true); ui.rSource = "mine"; ui.rFit = false; go("recipes"); toast(`Saved ${n} recipe${n === 1 ? "" : "s"}`); },
+  "copy-list": () => copyText(groceryText(), "Grocery list"),
+  "clear-checked": () => { S.grocery.checked = {}; S.grocery.extras = S.grocery.extras.filter(x => !x.done); persist("grocery"); render(); toast("Cleared checked items"); },
+  "del-extra": el => { S.grocery.extras = S.grocery.extras.filter(x => x.id !== el.dataset.id); persist("grocery"); render(); },
+  "logday": el => { ui.logDate = addDays(ui.logDate, +el.dataset.dir); if (ui.logDate > ui.today) ui.logDate = ui.today; render(); },
+  "logtoday": () => { ui.logDate = ui.today; render(); },
+  "add-food": () => foodModal(),
+  "save-food": () => saveFood(),
+  "del-meal": el => { const d = ui.logDate, log = clone(getLog(d)); log.meals = log.meals.filter(m => m.id !== el.dataset.id); saveLog(d, log); render(); },
+  "customize-brand": () => { const b = brandInfo(); S.settings.customPrenatal = {iron:+b.iron||0, folate:+b.folate||0, vitD:+b.vitD||0, vitB12:+b.vitB12||0, calcium:+b.calcium||0, dha:+b.dha||0}; S.settings.prenatalBrand = "custom"; persist("settings"); render(); },
+  "export": () => doExport(),
+  "erase-ask": () => { $("#erase-confirm").innerHTML = `<div class="notice warn"><div><b>Erase everything?</b> This deletes your recipes, plan, logs, and settings. Export a backup first if you might want them.</div><button class="btn btn-sm btn-danger" data-act="erase">Erase all data</button></div>`; },
+  "erase": () => {
+    const keys = ["settings","plan","grocery", ...Object.keys(S.recipes).map(k => "recipe_" + k), ...Object.keys(S.logs).map(k => "log_" + k)];
+    S.settings = clone(DEFAULT_SETTINGS); S.plan = {days:{}}; S.grocery = {checked:{}, extras:[]}; S.recipes = {}; S.logs = {};
+    keys.forEach(k => persist(k)); go("today"); toast("All data erased");
+  }
+};
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (!el || el.disabled) return;
+  const fn = ACT[el.dataset.act]; if (!fn) return;
+  e.preventDefault(); fn(el);
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.set) {
+    if (!needReady()) { render(); return; }
+    const path = t.dataset.set.split("."); let v = t.type === "checkbox" ? t.checked : t.type === "number" ? (t.value === "" ? 0 : +t.value) : t.value;
+    if (path[0] === "cycleLen") v = clamp(v, 21, 45);
+    if (path[0] === "periodLen") v = clamp(v, 2, 10);
+    if (path[0] === "household") v = clamp(v, 1, 12);
+    if (path[0] === "proteinGoal") v = clamp(v, 10, 120);
+    if (path[0] === "fiberGoal") v = clamp(v, 10, 80);
+    if (path.length === 2) S.settings[path[0]][path[1]] = v; else S.settings[path[0]] = v;
+    if (path[0] === "lastPeriod" && isDate(v)) { S.settings.periodStarts = [...new Set([...(S.settings.periodStarts || []), v])]; S.settings.setupDone = true; }
+    if (path[0] === "dueDate" && isDate(v)) S.settings.setupDone = true;
+    persist("settings"); render(); return;
+  }
+  const c = t.dataset.change;
+  if (c === "override") { if (!needReady()) return; S.settings.phaseOverride = t.value; persist("settings"); render(); toast(t.value ? "Phase set to " + PHASES[t.value].name : "Using calculated phase"); }
+  if (c === "prenatal") { if (!needReady()) return; const d = t.dataset.date, log = clone(getLog(d)); log.prenatal = t.checked; saveLog(d, log); render(); toast(t.checked ? "Prenatal logged" : "Prenatal unmarked"); }
+  if (c === "gcheck") { S.grocery.checked[t.dataset.key] = t.checked; if (!t.checked) delete S.grocery.checked[t.dataset.key]; persist("grocery"); t.closest(".gitem").classList.toggle("checked", t.checked); }
+  if (c === "xcheck") { const x = S.grocery.extras.find(y => y.id === t.dataset.id); if (x) x.done = t.checked; persist("grocery"); t.closest(".gitem").classList.toggle("checked", t.checked); }
+  if (c === "found-sel") { scan.sel[+t.dataset.i] = t.checked; const b = $("[data-act=save-found]"); if (b) b.textContent = `Save ${Object.values(scan.sel).filter(Boolean).length} recipe(s)`; }
+  if (c === "ff-recipe") { const r = recipeById($("#ff-recipe").value); if (!r) return; const sv = +$("#ff-serv").value || 1;
+    if (!$("#ff-name").value || t.id === "ff-recipe") $("#ff-name").value = r.title;
+    for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) $("#ff-" + k).value = r1(r.nut[k] * sv);
+    if (t.id === "ff-recipe") $("#ff-slot").value = r.meal; }
+});
+let searchTimer;
+document.addEventListener("input", e => { if (e.target.id === "recipe-search") { clearTimeout(searchTimer); searchTimer = setTimeout(() => { ui.rq = e.target.value; renderRecipeGrid(); }, 120); } });
+document.addEventListener("submit", e => {
+  if (e.target.id === "extra-form") { e.preventDefault(); const v = $("#extra-name").value.trim(); if (!v) return; S.grocery.extras.push({id:uid(), name:v.slice(0, 80), done:false}); persist("grocery"); render(); const inp = $("#extra-name"); inp && inp.focus(); }
+});
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && h !== ui.view && ["today","plan","recipes","grocery","log","profile"].includes(h)) { ui.view = h; render(); } });
+setInterval(() => { if (todayStr() !== ui.today) { if (ui.logDate === ui.today) ui.logDate = todayStr(); render(); } }, 60000);
+
+/* ---------- Start ---------- */
+(function start(){
+  const h = location.hash.slice(1);
+  if (["today","plan","recipes","grocery","log","profile"].includes(h)) ui.view = h;
+  render();
+  initStore().catch(() => { Store.backend = localBackend; Store.kind = "browser"; Store.ready = true; render(); });
+})();
+</script>
+
+</body></html>
