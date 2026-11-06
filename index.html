@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CycleNourish</title>
+<title>cHERish</title>
 <meta name="description" content="Meals that follow your cycle.">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="CycleNourish">
+<meta name="apple-mobile-web-app-title" content="cHERish">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script>try{var t=localStorage.getItem("cherish_theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#171E1A" media="(prefers-color-scheme: dark)">
 <meta name="robots" content="noindex">
@@ -81,6 +82,8 @@ button{cursor:pointer}
 .chip-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:none}
 .save-state{font-size:.75rem;color:var(--muted)}
+.theme-btn{border:1px solid var(--line);border-radius:999px;width:36px;height:36px;justify-content:center;align-items:center;flex:none;background:var(--surface-2);color:var(--ink)}
+.theme-btn svg{width:18px;height:18px}
 
 /* Shell */
 .shell{display:grid;grid-template-columns:228px minmax(0,1fr);min-height:calc(100% - 56px)}
@@ -286,7 +289,7 @@ button,a,label,input,select{-webkit-tap-highlight-color:transparent;touch-action
 .modal-body{min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 input[type="date"].input{-webkit-appearance:none;appearance:none;min-height:42px;display:block}
 input[type="date"].input::-webkit-date-and-time-value{text-align:left}
-#mode-chip{max-width:min(52vw,320px);overflow:hidden}
+#mode-chip{max-width:min(44vw,320px);overflow:hidden}
 #mode-chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (hover:none){ .rcard:hover{box-shadow:none;border-color:var(--line)} .btn:hover{background:var(--surface)} .btn-primary:hover{background:var(--accent-strong)} }
 @media (max-width:820px){
@@ -320,9 +323,10 @@ details summary{cursor:pointer;font-weight:600}
       </g>
       <path d="M70 50 C74 44 81 43 87 46 C84 53 77 55 70 50Z" fill="var(--ink)"/>
     </svg>
-    <div><div class="brand-name">CycleNourish</div><div class="brand-sub">Meals that follow your cycle</div></div>
+    <div><div class="brand-name">cHERish</div><div class="brand-sub">Meals that follow your cycle</div></div>
   </div>
   <span class="save-state" id="save-state">Loading…</span>
+  <button class="icon-btn theme-btn" id="theme-btn" data-act="theme" aria-label="Switch to dark mode"></button>
   <button class="chip-btn" data-act="go" data-view="profile" id="mode-chip"><span class="dot"></span><span id="mode-chip-label">Loading</span></button>
 </header>
 
@@ -360,6 +364,9 @@ const ICONS = {
   grocery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
   log:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
   profile:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>',
   close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
   left:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>',
@@ -491,7 +498,7 @@ const BUILTIN = [
 
 /* ---------- State ---------- */
 const DEFAULT_SETTINGS = {
-  setupDone:false, mode:"avoid", lastPeriod:"", periodStarts:[], cycleLen:28, periodLen:5, dueDate:"",
+  setupDone:false, mode:"avoid", lastPeriod:"", periodStarts:[], periodLengths:{}, cycleLen:28, periodLen:5, dueDate:"",
   phaseOverride:"", lastBackup:"", proteinGoal:40, fiberGoal:28, household:2, healthFocus:"",
   takesPrenatal:false, prenatalBrand:"ritual",
   customPrenatal:{iron:27, folate:600, vitD:1000, vitB12:10, calcium:150, dha:200}
@@ -568,19 +575,31 @@ function phaseForDay(day, L, P){ const r = phaseRanges(L, P); for (const k of PH
 function cycleAt(date){
   const s = S.settings;
   if (s.mode === "pregnant") return pregAt(date);
-  const L = clamp(s.cycleLen, 21, 45), P = clamp(s.periodLen, 2, 10);
+  const L = clamp(s.cycleLen, 21, 45);
   const example = !isDate(s.lastPeriod);
   const start = example ? addDays(ui.today, -8) : s.lastPeriod;
   const d = diffDays(date, start);
   let day, late = 0, projected = false;
   if (d >= L && d < L + 14) { day = d + 1; late = d - L + 1; }
   else { day = ((d % L) + L) % L + 1; projected = d >= L; }
+  // This cycle uses the length you logged with "My period ended"; other cycles use your usual length
+  const logged = !example && !projected && d >= 0 && s.periodLengths && s.periodLengths[start];
+  const P = logged ? clamp(logged, 1, 12) : clamp(s.periodLen, 2, 10);
   let phase = late ? "luteal" : phaseForDay(day, L, P);
   const manual = !!(s.phaseOverride && PHASES[s.phaseOverride]);
   if (manual) phase = s.phaseOverride;
   const ov = L - 14;
   const fertile = !late && day >= ov - 5 && day <= ov + 1;
-  return {kind:"cycle", day, L, P, phase, late, projected, example, manual, fertile, ov, nextIn: late ? 0 : L - day + 1};
+  return {kind:"cycle", day, L, P, phase, late, projected, example, manual, fertile, ov, nextIn: late ? 0 : L - day + 1, endLogged: !!logged};
+}
+function showPeriodEnded(ci){
+  return ci.kind === "cycle" && !ci.example && !ci.late && !ci.projected && !ci.manual && !ci.endLogged && ci.day >= 2 && ci.day <= 12;
+}
+function avgPeriodLen(){
+  const v = Object.values(S.settings.periodLengths || {}).map(Number).filter(n => n >= 1 && n <= 12);
+  if (!v.length) return null;
+  const last = v.slice(-6);
+  return Math.round(last.reduce((a, b) => a + b, 0) / last.length);
 }
 function pregAt(date){
   const s = S.settings;
@@ -768,12 +787,6 @@ function totals(d){
   if (prenatalOn() && log.prenatal) { const b = brandInfo(); t.suppIron = +b.iron || 0; t.iron += t.suppIron; t.calcium += +b.calcium || 0; }
   return t;
 }
-function streak(){
-  let n = 0, d = ui.today;
-  if (!getLog(d).prenatal) d = addDays(d, -1);
-  while (getLog(d).prenatal && n < 1000) { n++; d = addDays(d, -1); }
-  return n;
-}
 function logRecipe(date, slot, id, servings = 1){
   const r = recipeById(id); if (!r) return;
   const log = clone(getLog(date));
@@ -820,6 +833,23 @@ document.addEventListener("keydown", e => {
   }
 });
 $("#modal-root").addEventListener("mousedown", e => { if (e.target.dataset && e.target.dataset.back) closeModal(); });
+
+/* ---------- Theme ---------- */
+const darkQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+function themePref(){ try { const t = localStorage.getItem("cherish_theme"); return t === "dark" || t === "light" ? t : ""; } catch { return ""; } }
+const themeNow = () => themePref() || (darkQuery && darkQuery.matches ? "dark" : "light");
+function applyTheme(){
+  const pref = themePref(), now = themeNow(), root = document.documentElement;
+  if (pref) root.setAttribute("data-theme", pref); else root.removeAttribute("data-theme");
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+    if (!m.dataset.orig) m.dataset.orig = m.getAttribute("content");
+    m.setAttribute("content", pref ? (pref === "dark" ? "#171E1A" : "#FFFFFF") : m.dataset.orig);
+  });
+  const b = document.getElementById("theme-btn");
+  if (b) { b.innerHTML = now === "dark" ? ICONS.sun : ICONS.moon; b.setAttribute("aria-label", now === "dark" ? "Switch to light mode" : "Switch to dark mode"); }
+}
+function setTheme(t){ try { if (t) localStorage.setItem("cherish_theme", t); else localStorage.removeItem("cherish_theme"); } catch {} applyTheme(); if (ui.view === "profile") render(); }
+if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener("change", applyTheme);
 
 /* ---------- Rendering ---------- */
 const NAV = [["today","Today"],["plan","Week plan"],["recipes","Recipes"],["grocery","Groceries"],["log","Log"]];
@@ -889,7 +919,6 @@ function viewToday(){
     if (ci.late) chips.push(`<span class="pill warn">Period ${ci.late} day${ci.late > 1 ? "s" : ""} late</span>`);
     else chips.push(`<span class="pill">Next period in ~${ci.nextIn} day${ci.nextIn > 1 ? "s" : ""}</span>`);
     if (s.mode === "ttc") chips.push(ci.fertile ? `<span class="pill ph c-ovulation">Fertile window</span>` : `<span class="pill">Fertile window starts day ${ci.ov - 5}</span>`);
-    chips.push(`<span class="pill" title="Seed cycling is a traditional practice. Research on hormone effects is limited.">Seeds: ${esc(ph.seeds)}</span>`);
     hero = `<section class="card hero">
       ${ringSVG(ci)}
       <div class="hero-body">
@@ -899,7 +928,9 @@ function viewToday(){
         <p class="lead">${esc(ph.overview)}</p>
         <div class="row">${chips.join("")}</div>
         <div class="row">
-          <button class="btn btn-primary btn-sm" data-act="period-today">My period started today</button>
+          ${showPeriodEnded(ci) ? `<button class="btn btn-primary btn-sm" data-act="period-ended">My period ended</button>` : ""}
+          <button class="btn ${showPeriodEnded(ci) ? "" : "btn-primary "}btn-sm" data-act="period-today">My period started today</button>
+          ${ci.endLogged && ci.day <= 12 ? `<button class="link small" data-act="period-ended-undo">Undo period ended</button>` : ""}
           <label class="row small" style="gap:6px"><span class="muted">Phase</span>
             <select class="input" style="width:auto;padding:5px 8px" data-change="override" id="override-select" aria-label="Phase">
               <option value="">Calculated</option>${PHASE_KEYS.map(k => `<option value="${k}" ${s.phaseOverride === k ? "selected" : ""}>${PHASES[k].name}</option>`).join("")}
@@ -984,12 +1015,12 @@ function meter(label, val, target, unit, sub, over){
     <span class="small muted">${esc(sub)}</span></div>`;
 }
 function prenatalCard(d){
-  const b = brandInfo(), log = getLog(d), st = streak(), isToday = d === ui.today;
+  const b = brandInfo(), log = getLog(d), isToday = d === ui.today;
   return `<section class="section"><div class="section-head"><h2>Prenatal</h2><button class="link" data-act="go" data-view="profile">Change brand</button></div>
     <div class="card section">
       <label class="check-big"><input type="checkbox" data-change="prenatal" data-date="${d}" ${log.prenatal ? "checked" : ""}>
         <div><b>${log.prenatal ? "Taken" : "Not taken yet"}${isToday ? " today" : " on " + esc(fmtDate(d))}</b><div class="small muted">${esc(b.name)}</div></div>
-        <span style="flex:1"></span><span class="pill num">${st}-day streak</span></label>
+</label>
       ${+b.iron >= 45 ? `<p class="small" style="color:var(--warn)">This prenatal lists ${b.iron} mg iron, which reaches the 45 mg upper limit by itself. Confirm the dose with your provider.</p>` : ""}
     </div></section>`;
 }
@@ -1119,8 +1150,7 @@ function editorModal(r){
         <label class="field"><span>Servings</span><input class="input num" type="number" min="1" max="40" id="rf-serv" value="${r.servings}"></label>
         <label class="field"><span>Time</span><input class="input" id="rf-time" placeholder="30 min" value="${esc(r.time)}"></label>
       </div>
-      <div class="field"><span>Best in these phases</span><div class="checks">${PHASE_KEYS.map(k => `<label class="c-${k}"><input type="checkbox" name="rf-ph" value="${k}" ${r.phases.includes(k) ? "checked" : ""}> ${PHASES[k].name}</label>`).join("")}</div><small>Leave all unchecked for any phase.</small></div>
-      <label class="field"><span>Ingredients, one per line</span><textarea class="input" id="rf-ing" placeholder="1 1/2 cup rolled oats&#10;2 tbsp chia seeds&#10;1 apple">${esc(ingText)}</textarea></label>
+      <label class="field"><span>Ingredients, one per line</span><small>Phases are matched to this recipe automatically from its ingredients.</small><textarea class="input" id="rf-ing" placeholder="1 1/2 cup rolled oats&#10;2 tbsp chia seeds&#10;1 apple">${esc(ingText)}</textarea></label>
       <label class="field"><span>Steps, one per line</span><textarea class="input" id="rf-steps">${esc(r.steps.join("\n"))}</textarea></label>
       <div class="field"><span>Nutrition per serving</span><div class="grid g4">${[["protein","Protein (g)"],["carbs","Carbs (g)"],["fat","Fat (g)"],["fiber","Fiber (g)"],["iron","Iron (mg)"],["calcium","Calcium (mg)"],["vitC","Vitamin C (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" step="0.1" min="0" id="rf-${k}" value="${r.nut[k]}"></label>`).join("")}</div>
         <div class="row"><button type="button" class="btn btn-sm" data-act="estimate">${ICONS.spark}Estimate nutrition</button><span class="small muted" id="est-status"></span></div></div>
@@ -1136,7 +1166,7 @@ function readRecipeForm(){
   const v = id => $("#" + id).value;
   return normalizeRecipe({
     id: v("rf-id") || uid(), title: v("rf-title").trim(), meal: v("rf-meal"), servings: +v("rf-serv"), time: v("rf-time").trim(),
-    phases: [...document.querySelectorAll("input[name=rf-ph]:checked")].map(x => x.value),
+    phases: guessPhases(v("rf-title") + "\n" + v("rf-ing")),
     ingredients: v("rf-ing").split("\n").map(s => s.trim()).filter(Boolean),
     steps: v("rf-steps").split("\n").map(s => s.trim()).filter(Boolean),
     nut: Object.fromEntries(["protein","carbs","fat","fiber","iron","calcium","vitC"].map(k => [k, +v("rf-" + k) || 0])),
@@ -1152,10 +1182,11 @@ function saveRecipeForm(){
 
 /* ---------- Recipe reader: runs on this device, nothing is uploaded ---------- */
 const ERRS = {
-  unauthorized:"Your sync key doesn't match. Copy it again from the sheet's App Sync tab (cell B1).",
+  unauthorized:"That sync key doesn't match line 9 of your script. Check for typos and capital letters. If you changed line 9, deploy a new version: Deploy → Manage deployments → pencil icon → New version → Deploy.",
+  key_not_set:"Your script's sync key is still the placeholder. Set line 9 (SYNC_KEY) to your own phrase, save, then deploy a new version: Deploy → Manage deployments → pencil icon → New version → Deploy.",
   network:"Couldn't reach your Google Sheet. Check your connection. Changes are saved here and sync when you're back online.",
   not_json:"Your sheet's web app needs “Who has access” set to Anyone. Redeploy a new version with that setting.",
-  bad_request:"Your sheet's script didn't understand the request. Make sure it has the latest CycleNourish-Sync code and a new deployment.",
+  bad_request:"Your sheet's script didn't understand the request. Make sure it has the latest cHERish sync code and a new deployment.",
   server:"Your sheet's script reported an error. Try again in a minute.",
   ocr_load:"Couldn't load the photo reader. Check your connection and try again.",
   ocr_fail:"Couldn't read text in that photo. Try a sharper, well-lit photo taken straight on."
@@ -1311,6 +1342,7 @@ function withEstimate(r){
     r.notes = (r.notes || "").replace(/Nutrition not filled in yet\.?/i, "").trim();
     if (e.rough) r.notes = (r.notes ? r.notes + " " : "") + "Nutrition is a rough estimate because some ingredients weren't recognized.";
   }
+  if (!r.phases.length) r.phases = guessPhases(r.title + "\n" + r.ingredients.map(i => i.item).join("\n"));
   if (!r.boost && r.meal !== "snack" && r.nut.protein < targets().perMeal) {
     const gap = targets().perMeal - r.nut.protein;
     r.boost = gap > 15 ? "Add 3 oz chicken, fish, or extra-firm tofu per serving (+20–25 g)." : "Add a cup of Greek yogurt or 2 eggs on the side (+12–20 g).";
@@ -1341,7 +1373,7 @@ function scannerModal(){
       <div class="dropzone" id="dropzone"><b>Choose or take photos</b><span class="small muted">Cookbook pages, recipe cards, or screenshots. Pick several photos to combine pages of one recipe. Photos are read on this device and never uploaded.</span>
         <input type="file" id="scan-photos" accept="image/*" multiple aria-label="Recipe photos"></div>
       <div class="row"><button class="btn btn-primary" data-act="run-scan-photos" ${scan.busy ? "disabled" : ""}>${ICONS.spark}Read photos</button><span class="small muted">The first photo takes longer while the reader loads.</span></div>` : `
-      <div class="dropzone"><b>Import recipe files</b><span class="small muted">Select as many as you like: Word (.docx), PDF, Excel (.xlsx), CSV, text, or a CycleNourish backup (.json). On iPhone, tap Browse and choose OneDrive or Google Drive.</span>
+      <div class="dropzone"><b>Import recipe files</b><span class="small muted">Select as many as you like: Word (.docx), PDF, Excel (.xlsx), CSV, text, or a cHERish backup (.json). On iPhone, tap Browse and choose OneDrive or Google Drive.</span>
         <input type="file" id="scan-file" multiple accept=".json,.csv,.txt,.md,.html,.htm,.docx,.pdf,.xlsx,.xls,text/plain,application/json,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Recipe files"></div>
       <details><summary>CSV and Excel columns</summary><p class="small muted" style="margin-top:6px">title, meal, servings, time, ingredients (separate with | or ;), steps (separate with |), phases, protein, carbs, fat, fiber, iron, calcium, vitc</p></details>
       <div class="row"><button class="btn btn-primary" data-act="run-import" ${scan.busy ? "disabled" : ""}>Import</button></div>`;
@@ -1507,6 +1539,39 @@ function estimateNutrition(){
   st.textContent = e.unknown ? `Estimated. ${e.unknown} ingredient${e.unknown > 1 ? "s weren't" : " wasn't"} recognized, so adjust if you know better values.` : "Estimated from the ingredients. Adjust if you know better values.";
 }
 
+/* Apple Reminders (through an Apple Shortcut on iPhone, iPad, or Mac) */
+const SHORTCUT_NAME = "cHERish Groceries";
+function remindersText(){
+  const g = buildGrocery(), ch = S.grocery.checked, lines = [];
+  for (const [k] of SECTIONS) g.items.filter(i => !i.staple && i.section === k && !ch[i.key]).sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(i => { const amt = fmtAmounts(i); lines.push(countName(i) + (amt ? ` (${amt})` : "")); });
+  S.grocery.extras.filter(x => !x.done).forEach(x => lines.push(x.name));
+  return lines.join("\n");
+}
+function remindersReady(){ try { return localStorage.getItem("cherish_reminders_ready") === "1"; } catch { return false; } }
+function sendToReminders(){
+  const text = remindersText();
+  if (!text) { toast("Nothing to send. Every item is checked off."); return; }
+  try { navigator.clipboard && navigator.clipboard.writeText(text).catch(() => {}); } catch {}
+  location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT_NAME) + "&input=text&text=" + encodeURIComponent(text);
+}
+function remindersModal(){
+  const n = remindersText().split("\n").filter(Boolean).length;
+  openModal(`${modalHead("Send to Apple Reminders")}
+    <div class="modal-body">
+      <p>One quick setup on your iPhone: an Apple Shortcut that turns each grocery item into its own reminder. You only do this once.</p>
+      <ol class="steps">
+        <li>Open the <b>Shortcuts</b> app and tap <b>+</b>. Name it exactly <b>${SHORTCUT_NAME}</b> (tap the name at the top).</li>
+        <li>Search for and add <b>Split Text</b>. Tap its first blue field and choose <b>Shortcut Input</b>. Make sure it splits by <b>New Lines</b>.</li>
+        <li>Add <b>Repeat with Each</b>. It repeats over <b>Split Text</b>.</li>
+        <li>Inside the repeat, add <b>Add New Reminder</b>. Set the text to <b>Repeat Item</b> and the list to the one you shop from, like <b>Groceries</b>.</li>
+        <li>Tap <b>Done</b>.</li>
+      </ol>
+      <p class="small muted">Sending also copies the list. If the shortcut isn't set up, open Reminders, start a new reminder, and paste: each line becomes its own item. Checked items and pantry staples are left out.</p>
+    </div>
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Not now</button><button class="btn btn-primary" data-act="reminders-go">It's set up. Send ${n} item${n === 1 ? "" : "s"}</button></div>`, {size:"sm"});
+}
+
 /* Grocery */
 function viewGrocery(){
   const g = buildGrocery(), days = weekDays();
@@ -1524,6 +1589,7 @@ function viewGrocery(){
       <div class="row">
         <label class="row small" style="gap:6px"><span class="muted">People</span><select class="input" style="width:auto;padding:6px 8px" data-set="household" id="hh-select">${[1,2,3,4,5,6].map(n => `<option value="${n}" ${S.settings.household == n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
         <button class="icon-btn" data-act="week" data-dir="-1" aria-label="Previous week" ${ui.weekOffset <= 0 ? "disabled" : ""}>${ICONS.left}</button><button class="icon-btn" data-act="week" data-dir="1" aria-label="Next week" ${ui.weekOffset >= 3 ? "disabled" : ""}>${ICONS.right}</button>
+        <button class="btn btn-sm btn-primary" data-act="reminders">${ICONS.check}Send to Reminders</button>
         <button class="btn btn-sm" data-act="copy-list">Copy list</button>
         <button class="btn btn-sm" data-act="clear-checked" ${nChecked ? "" : "disabled"}>Clear checked</button></div></div>
     <div class="cols">${groups}
@@ -1616,8 +1682,8 @@ function viewProfile(){
       <div class="modecards">${Object.entries(MODES).map(([k, m]) => `<button class="modecard" data-act="mode" data-mode="${k}" aria-pressed="${s.mode === k}"><b>${m.name}</b><span>${m.desc}</span></button>`).join("")}</div></section>
     ${s.mode === "pregnant" ? `<section class="card section"><h2>Pregnancy</h2><div class="grid g2">${field("dueDate", "Due date", "date", "", "Used to count weeks. If blank, weeks count from your last period.")}${field("lastPeriod", "First day of last period", "date", `max="${ui.today}"`)}</div></section>` :
     `<section class="card section"><h2>Your cycle</h2>
-      <div class="grid g3">${field("lastPeriod", "First day of last period", "date", `max="${ui.today}"`)}${field("cycleLen", "Cycle length (days)", "number", 'min="21" max="45"', "Typical range is 21–35.")}${field("periodLen", "Period length (days)", "number", 'min="2" max="10"')}</div>
-      ${starts.length ? `<div class="section" style="gap:6px"><span class="label">Logged period starts</span><div class="row">${starts.slice(0, 8).map(x => `<span class="pill num">${esc(fmtDate(x, {month:"short", day:"numeric", year:"numeric"}))}<button class="icon-btn" style="padding:0" data-act="del-start" data-d="${x}" aria-label="Remove ${esc(fmtDate(x))}">${ICONS.close}</button></span>`).join("")}</div>
+      <div class="grid g3">${field("lastPeriod", "First day of last period", "date", `max="${ui.today}"`)}${field("cycleLen", "Cycle length (days)", "number", 'min="21" max="45"', "Typical range is 21–35.")}${field("periodLen", "Period length (days)", "number", 'min="2" max="10"', avgPeriodLen() ? "Updated from the days you tap “My period ended.”" : "Tap “My period ended” on Today to track this automatically.")}</div>
+      ${starts.length ? `<div class="section" style="gap:6px"><span class="label">Logged period starts</span><div class="row">${starts.slice(0, 8).map(x => `<span class="pill num">${esc(fmtDate(x, {month:"short", day:"numeric", year:"numeric"}))}${s.periodLengths && s.periodLengths[x] ? ` · ${s.periodLengths[x]} days` : ""}<button class="icon-btn" style="padding:0" data-act="del-start" data-d="${x}" aria-label="Remove ${esc(fmtDate(x))}">${ICONS.close}</button></span>`).join("")}</div>
         ${avg && avg !== s.cycleLen ? `<div class="row"><span class="small">Your recent average is <b>${avg} days</b>.</span><button class="btn btn-sm" data-act="use-avg" data-v="${avg}">Use ${avg} days</button></div>` : ""}</div>` : ""}
       ${s.phaseOverride ? `<div class="notice"><div>Phase is set manually to <b>${PHASES[s.phaseOverride].name}</b>.</div><button class="btn btn-sm" data-act="clear-override">Use calculated phase</button></div>` : ""}
     </section>`}
@@ -1631,6 +1697,9 @@ function viewProfile(){
         ${s.prenatalBrand === "custom" ? `<div class="grid g3">${[["iron","Iron (mg)"],["folate","Folate (mcg DFE)"],["vitD","Vitamin D (IU)"],["vitB12","B12 (mcg)"],["calcium","Calcium (mg)"],["dha","DHA (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" min="0" step="0.1" id="set-cp-${k}" data-set="customPrenatal.${k}" value="${s.customPrenatal[k]}"></label>`).join("")}</div>` :
         `<p class="small num">Per dose: iron ${b.iron} mg · folate ${b.folate} mcg · vitamin D ${b.vitD} IU · B12 ${b.vitB12} mcg · calcium ${b.calcium} mg · DHA ${b.dha} mg. <button class="link" data-act="customize-brand">Edit values</button></p>`}` : ""}
     </section>
+    <section class="card section"><h2>Appearance</h2>
+      <div class="seg" role="group" aria-label="Appearance">${[["","Match my phone"],["light","Light"],["dark","Dark"]].map(([k, l]) => `<button data-act="theme-set" data-v="${k}" aria-pressed="${themePref() === k}">${l}</button>`).join("")}</div>
+      <p class="small muted">The sun and moon button at the top also switches between light and dark.</p></section>
     <section class="card section"><h2>Your data</h2>
       <p>${cloudReady() ? "Your data is saved on this device and synced to your Google Sheet, so it follows you to any phone or computer you connect." : "Your data is saved on this device only. Connect your Google Sheet below to back it up and use it on other devices."}</p>
       <p class="small muted">To keep a copy in OneDrive or Google Drive, tap Export backup. On iPhone, choose Save to Files, then OneDrive or Google Drive. To restore, use Import backup and pick that file.${s.lastBackup ? ` Last backup: ${esc(fmtDate(s.lastBackup, {month:"short", day:"numeric", year:"numeric"}))}.` : " No backup yet."}</p>
@@ -1648,7 +1717,7 @@ async function doExport(){
     try {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
-      a.download = `cyclenourish-backup-${ui.today}.json`;
+      a.download = `cherish-backup-${ui.today}.json`;
       document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
       S.settings.lastBackup = ui.today; persist("settings"); render(); toast("Backup downloaded"); return;
@@ -1807,7 +1876,7 @@ async function cloudPull(first){
   finally { cloud.busy = false; saveCloudCfg(); if (pushAfter) cloudPush(); }
 }
 async function cloudConnect(){
-  const url = ($("#cloud-url").value || "").trim(), token = ($("#cloud-token").value || "").trim();
+  const url = ($("#cloud-url").value || "").trim(), token = ($("#cloud-token").value || "").trim().replace(/^['"‘’“”]+|['"‘’“”]+$/g, "");
   const msg = t => { const el = $("#cloud-msg"); if (el) el.textContent = t; };
   if (!validSheetUrl(url)) { msg("The link should start with https://script.google.com/macros/s/ and end with /exec."); return; }
   if (token.length < 16) { msg("Paste the sync key from your sheet's App Sync tab."); return; }
@@ -1825,7 +1894,7 @@ function cloudSectionHTML(){
         <p class="small muted" id="cloud-status">${esc(cloudStatusText())}</p>
 </div>
         <div class="row"><button class="btn btn-sm" data-act="cloud-sync">Sync now</button><button class="btn btn-sm btn-ghost btn-danger" data-act="cloud-off">Disconnect</button></div></div>` :
-    `<p class="small muted">Changes sync automatically a few seconds after you make them. In your sheet, choose CycleNourish → Set up app sync, then paste the web app link and sync key here.</p>
+    `<p class="small muted">Changes sync automatically a few seconds after you make them. In your sheet, choose cHERish → Set up app sync, then paste the web app link and sync key here.</p>
      <label class="field"><span>Web app link</span><input class="input" id="cloud-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(cloud.url)}"></label>
      <label class="field"><span>Sync key</span><input class="input" id="cloud-token" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" value="${esc(cloud.token)}"></label>
      <div class="row"><button class="btn btn-primary" data-act="cloud-connect">Connect</button><span class="small muted" id="cloud-msg">${esc(cloud.msg || "")}</span></div>`}
@@ -1857,8 +1926,20 @@ const ACT = {
   "period-today": () => { if (!needReady()) return; const s = S.settings, t = ui.today;
     if (isDate(s.lastPeriod) && s.lastPeriod !== t && diffDays(t, s.lastPeriod) < 10) { toast("Your last period started less than 10 days ago. Edit dates in Profile if needed."); return; }
     s.lastPeriod = t; s.periodStarts = [...new Set([...(s.periodStarts || []), t])]; s.phaseOverride = ""; s.setupDone = true; persist("settings"); render(); toast("Logged. Day 1 starts today."); },
+  "period-ended": () => { if (!needReady()) return; const s = S.settings, ci = cycleAt(ui.today);
+    if (!showPeriodEnded(ci)) return;
+    const len = Math.max(1, ci.day - 1);   // bleeding stopped, so today is the first day after it
+    if (!Object.keys(s.periodLengths || {}).length) s.periodLenSet = s.periodLen;   // remember your own setting for undo
+    s.periodLengths = Object.assign({}, s.periodLengths, {[s.lastPeriod]: len});
+    const avg = avgPeriodLen(); if (avg) s.periodLen = clamp(avg, 2, 10);
+    persist("settings"); render(); toast(`Logged. Your period lasted ${len} day${len > 1 ? "s" : ""}. ${PHASES[cycleAt(ui.today).phase].name} phase starts today.`); },
+  "period-ended-undo": () => { const s = S.settings; if (!s.periodLengths) return;
+    const copy = Object.assign({}, s.periodLengths); delete copy[s.lastPeriod]; s.periodLengths = copy;
+    const avg = avgPeriodLen(); if (avg) s.periodLen = clamp(avg, 2, 10); else if (s.periodLenSet) s.periodLen = s.periodLenSet;
+    persist("settings"); render(); toast("Period end removed"); },
   "clear-override": () => { S.settings.phaseOverride = ""; persist("settings"); render(); },
-  "del-start": el => { const s = S.settings; s.periodStarts = (s.periodStarts || []).filter(x => x !== el.dataset.d); if (s.lastPeriod === el.dataset.d) s.lastPeriod = s.periodStarts.slice().sort().pop() || ""; persist("settings"); render(); },
+  "del-start": el => { const s = S.settings; s.periodStarts = (s.periodStarts || []).filter(x => x !== el.dataset.d);
+    if (s.periodLengths && s.periodLengths[el.dataset.d]) { const c = Object.assign({}, s.periodLengths); delete c[el.dataset.d]; s.periodLengths = c; } if (s.lastPeriod === el.dataset.d) s.lastPeriod = s.periodStarts.slice().sort().pop() || ""; persist("settings"); render(); },
   "use-avg": el => { S.settings.cycleLen = +el.dataset.v; persist("settings"); render(); toast(`Cycle length set to ${el.dataset.v} days`); },
   "open-recipe": el => recipeModal(el.dataset.id),
   "rserv": el => recipeModal(el.dataset.id, +el.dataset.v),
@@ -1894,6 +1975,9 @@ const ACT = {
   "save-found-one": el => { const i = +el.dataset.i; const r = readRecipeForm(); scan.found[i] = r; scannerModal(); },
   "save-found": () => { if (!needReady()) return; let n = 0; scan.found.forEach((r, i) => { if (scan.sel[i]) { S.recipes[r.id] = r; persist("recipe_" + r.id); n++; } });
     scan.found = []; scan.draft = ""; closeModal(true); ui.rSource = "mine"; ui.rFit = false; go("recipes"); toast(`Saved ${n} recipe${n === 1 ? "" : "s"}`); },
+  "reminders": () => { if (remindersReady()) sendToReminders(); else remindersModal(); },
+  "reminders-go": () => { try { localStorage.setItem("cherish_reminders_ready", "1"); } catch {} closeModal(true); sendToReminders(); },
+  "reminders-help": () => remindersModal(),
   "copy-list": () => copyText(groceryText(), "Grocery list"),
   "clear-checked": () => { S.grocery.checked = {}; S.grocery.extras = S.grocery.extras.filter(x => !x.done); persist("grocery"); render(); toast("Cleared checked items"); },
   "del-extra": el => { S.grocery.extras = S.grocery.extras.filter(x => x.id !== el.dataset.id); persist("grocery"); render(); },
@@ -1904,6 +1988,8 @@ const ACT = {
   "del-meal": el => { const d = ui.logDate, log = clone(getLog(d)); log.meals = log.meals.filter(m => m.id !== el.dataset.id); saveLog(d, log); render(); },
   "customize-brand": () => { const b = brandInfo(); S.settings.customPrenatal = {iron:+b.iron||0, folate:+b.folate||0, vitD:+b.vitD||0, vitB12:+b.vitB12||0, calcium:+b.calcium||0, dha:+b.dha||0}; S.settings.prenatalBrand = "custom"; persist("settings"); render(); },
   "export": () => doExport(),
+  "theme": () => setTheme(themeNow() === "dark" ? "light" : "dark"),
+  "theme-set": el => setTheme(el.dataset.v),
   "cloud-connect": () => cloudConnect(),
   "cloud-sync": () => { cloud.lastPull = 0; cloudPull(); },
   "cloud-off": () => { cloud.connected = false; cloud.token = ""; cloud.state = "off"; saveCloudCfg(); render(); toast("Disconnected from Google Sheet. Your data stays on this device."); },
@@ -1958,6 +2044,7 @@ setInterval(() => { if (todayStr() !== ui.today) { if (ui.logDate === ui.today) 
   const h = location.hash.slice(1);
   if (["today","plan","recipes","grocery","log","profile"].includes(h)) ui.view = h;
   loadCloudCfg();
+  applyTheme();
   render();
   initStore().catch(() => { Store.backend = localBackend; Store.kind = "browser"; Store.ready = true; render(); }).then(() => cloudPull());
 })();
