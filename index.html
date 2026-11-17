@@ -503,7 +503,7 @@ const DEFAULT_SETTINGS = {
   takesPrenatal:false, prenatalBrand:"ritual",
   customPrenatal:{iron:27, folate:600, vitD:1000, vitB12:10, calcium:150, dha:200}
 };
-const S = { settings:clone(DEFAULT_SETTINGS), plan:{days:{}}, grocery:{checked:{}, extras:[]}, recipes:{}, logs:{} };
+const S = { settings:clone(DEFAULT_SETTINGS), plan:{days:{}}, grocery:{checked:{}, extras:[], days:[]}, recipes:{}, logs:{} };
 const ui = { view:"today", logDate:todayStr(), weekOffset:0, rq:"", rMeal:"all", rSource:"all", rFit:true, today:todayStr() };
 
 /* ---------- Storage ---------- */
@@ -529,7 +529,7 @@ async function initStore(){
 function applyData(m){
   if (m.settings) S.settings = Object.assign(clone(DEFAULT_SETTINGS), m.settings, {customPrenatal:Object.assign(clone(DEFAULT_SETTINGS.customPrenatal), m.settings.customPrenatal || {})});
   if (m.plan) S.plan = {days:m.plan.days || {}};
-  if (m.grocery) S.grocery = {checked:m.grocery.checked || {}, extras:m.grocery.extras || []};
+  if (m.grocery) S.grocery = {checked:m.grocery.checked || {}, extras:m.grocery.extras || [], days:Array.isArray(m.grocery.days) ? m.grocery.days.filter(isDate) : []};
   S.recipes = {}; S.logs = {};
   for (const [k, v] of Object.entries(m)) {
     if (k.startsWith("recipe_") && v && v.title) S.recipes[v.id] = normalizeRecipe(v);
@@ -722,9 +722,21 @@ function itemKey(name){
   t = t.split(" ").map(w => w.endsWith("oes") ? w.slice(0, -2) : w.endsWith("ies") && w.length > 4 ? w.slice(0, -3) + "y" : w.endsWith("s") && !w.endsWith("ss") && w.length > 3 ? w.slice(0, -1) : w).join(" ");
   return t;
 }
+const groceryDays = () => [...new Set(S.grocery.days || [])].filter(isDate).sort();
+const inGrocery = d => groceryDays().includes(d);
+function setGroceryDays(days){
+  const keep = addDays(ui.today, -7);   // days more than a week old drop off on their own
+  S.grocery.days = [...new Set(days)].filter(d => isDate(d) && d >= keep).sort();
+  persist("grocery");
+}
+function addGroceryDays(days){
+  const before = groceryDays().length;
+  setGroceryDays(groceryDays().concat(days));
+  return groceryDays().length - before;
+}
 function buildGrocery(){
   const counts = {};
-  const days = weekDays();
+  const days = groceryDays();
   for (const d of days) for (const s of SLOTS) { const id = plannedId(d, s.key); if (id) counts[id] = (counts[id] || 0) + 1; }
   const hh = clamp(S.settings.household, 1, 12);
   const items = {};
@@ -979,7 +991,7 @@ function viewToday(){
     ${notices.join("")}
     ${hero}
     <section class="section">
-      <div class="section-head"><h2>Today's meals</h2><button class="link" data-act="go" data-view="plan">Edit week plan</button></div>
+      <div class="section-head"><h2>Today's meals</h2><div class="row">${inGrocery(d) ? `<button class="link" data-act="go" data-view="grocery">On your grocery list ✓</button>` : `<button class="btn btn-sm" data-act="grocery-add-today">${ICONS.grocery}Add to groceries</button>`}<button class="link" data-act="go" data-view="plan">Edit week plan</button></div></div>
       <div class="grid g3">${SLOTS.slice(0, 3).map(mealCard).join("")}</div>
       ${snack ? `<div class="card snack-row"><span class="label">Snack</span><button class="title link" style="font-family:var(--font-display);font-size:1.02rem;text-decoration:none;color:var(--ink)" data-act="open-recipe" data-id="${esc(snackId)}">${esc(snack.title)}</button><span class="small muted num">${snack.nut.protein} g protein</span><span style="flex:1"></span>
         <button class="btn btn-sm ${snackLogged ? "logged" : ""}" data-act="toggle-log" data-date="${d}" data-slot="snack" data-id="${esc(snackId)}">${snackLogged ? "Eaten ✓" : "I ate this"}</button>
@@ -1051,13 +1063,14 @@ function viewPlan(){
       return `<button class="plan-cell ${custom ? "custom" : ""}" data-act="pick" data-date="${d}" data-slot="${s.key}" aria-label="${s.name} on ${esc(fmtDate(d))}: ${esc(r ? r.title : "none")}">
         <span class="label slotname">${s.name}</span><span class="t">${esc(r ? r.title : "Choose a recipe")}</span>${r ? `<span class="small muted num">${r.nut.protein} g protein</span>` : ""}</button>`;
     }).join("");
-    return `<div class="plan-day ${d === ui.today ? "today" : ""} c-${c}"><div class="plan-dayhead"><b>${esc(fmtDate(d))}</b><span class="small muted">${esc(sub)}</span>${S.settings.mode === "ttc" && ci.fertile ? `<span class="small" style="color:var(--ovu-strong);font-weight:700">Fertile window</span>` : ""}</div>${cells}</div>`;
+    return `<div class="plan-day ${d === ui.today ? "today" : ""} c-${c}"><div class="plan-dayhead"><b>${esc(fmtDate(d))}</b><span class="small muted">${esc(sub)}</span>${S.settings.mode === "ttc" && ci.fertile ? `<span class="small" style="color:var(--ovu-strong);font-weight:700">Fertile window</span>` : ""}
+      ${d < ui.today ? "" : inGrocery(d) ? `<button class="link small" data-act="grocery-day-remove" data-d="${d}" style="justify-self:start" aria-label="Remove ${esc(fmtDate(d))} from groceries">On grocery list ✓</button>` : `<button class="btn btn-sm" data-act="grocery-day-add" data-d="${d}" style="justify-self:start">+ Groceries</button>`}</div>${cells}</div>`;
   }).join("");
   const hasCustom = days.some(d => S.plan.days[d]);
   return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Week plan</span><h1>${esc(fmtDate(days[0], {month:"short", day:"numeric"}))} – ${esc(fmtDate(days[6], {month:"short", day:"numeric"}))}</h1>
       <p class="muted small">Suggestions follow each day's phase and repeat for two days so you can batch cook. Tap any meal to change it. Dashed outlines are your picks.</p></div>
       <div class="row"><button class="icon-btn" data-act="week" data-dir="-1" aria-label="Previous week" ${ui.weekOffset <= 0 ? "disabled" : ""}>${ICONS.left}</button><button class="icon-btn" data-act="week" data-dir="1" aria-label="Next week" ${ui.weekOffset >= 3 ? "disabled" : ""}>${ICONS.right}</button>
-      ${hasCustom ? `<button class="btn btn-sm" data-act="reset-week">Reset to suggestions</button>` : ""}<button class="btn btn-sm btn-primary" data-act="go" data-view="grocery">Grocery list</button></div></div>
+      ${hasCustom ? `<button class="btn btn-sm" data-act="reset-week">Reset to suggestions</button>` : ""}<button class="btn btn-sm btn-primary" data-act="grocery-add-week">Add this week to groceries</button></div></div>
     <div class="section" style="gap:8px"><div class="plan-colhead label"><span></span>${SLOTS.map(s => `<span>${s.name}</span>`).join("")}</div>${rows}</div>`;
 }
 
@@ -1539,6 +1552,37 @@ function estimateNutrition(){
   st.textContent = e.unknown ? `Estimated. ${e.unknown} ingredient${e.unknown > 1 ? "s weren't" : " wasn't"} recognized, so adjust if you know better values.` : "Estimated from the ingredients. Adjust if you know better values.";
 }
 
+/* Add plan days to the grocery list */
+let gPick = {};
+function groceryAddModal(){
+  const days = Array.from({length:14}, (_, i) => addDays(ui.today, i));
+  gPick = {};
+  const row = d => {
+    const ci = cycleAt(d), on = inGrocery(d);
+    const meals = SLOTS.map(s => recipeById(plannedId(d, s.key))).filter(Boolean).map(r => r.title);
+    const sub = ci.kind === "preg" ? `Week ${ci.week}` : PHASES[ci.phase].name;
+    return `<li class="gitem"><input type="checkbox" id="gd-${d}" data-change="gday-pick" data-d="${d}" ${on ? "checked disabled" : ""}>
+      <label for="gd-${d}"><span class="n"><b>${esc(d === ui.today ? "Today" : fmtDate(d))}</b> <span class="small muted">· ${esc(sub)}${on ? " · already on your list" : ""}</span></span><span class="u">${esc(meals.join(", "))}</span></label></li>`;
+  };
+  openModal(`${modalHead("Add meals to your grocery list")}
+    <div class="modal-body">
+      <p class="small muted">Choose the days you're shopping for. All the meals planned for those days are added. Change a day's meals in the Week plan and the list follows.</p>
+      <div class="row"><button class="btn btn-sm" data-act="gday-quick" data-n="1">Today</button><button class="btn btn-sm" data-act="gday-quick" data-n="3">Next 3 days</button><button class="btn btn-sm" data-act="gday-quick" data-n="7">Next 7 days</button></div>
+      <ul class="glist">${days.map(row).join("")}</ul>
+    </div>
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Cancel</button><button class="btn btn-primary" data-act="gday-add" id="gday-add" disabled>Add days</button></div>`, {size:"sm"});
+}
+function updateGdayBtn(){
+  const n = Object.values(gPick).filter(Boolean).length, b = $("#gday-add");
+  if (b) { b.disabled = !n; b.textContent = n ? `Add ${n} day${n === 1 ? "" : "s"}` : "Add days"; }
+}
+function addDaysToGrocery(days, label){
+  if (!needReady()) return;
+  const n = addGroceryDays(days);
+  render();
+  toast(n ? `Added ${label || (n + " day" + (n === 1 ? "" : "s"))} to your grocery list` : "Already on your grocery list");
+}
+
 /* Apple Reminders (through an Apple Shortcut on iPhone, iPad, or Mac) */
 const SHORTCUT_NAME = "cHERish Groceries";
 function remindersText(){
@@ -1549,11 +1593,33 @@ function remindersText(){
   return lines.join("\n");
 }
 function remindersReady(){ try { return localStorage.getItem("cherish_reminders_ready") === "1"; } catch { return false; } }
-function sendToReminders(){
-  const text = remindersText();
-  if (!text) { toast("Nothing to send. Every item is checked off."); return; }
+function sendToReminders(lines){
+  const text = (lines || remindersText().split("\n")).filter(Boolean).join("\n");
+  if (!text) { toast("Nothing to send. Choose at least one item."); return; }
   try { navigator.clipboard && navigator.clipboard.writeText(text).catch(() => {}); } catch {}
   location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT_NAME) + "&input=text&text=" + encodeURIComponent(text);
+}
+let remPick = {};
+function confirmRemindersModal(){
+  const lines = remindersText().split("\n").filter(Boolean);
+  if (!lines.length) { toast(groceryDays().length || S.grocery.extras.length ? "Nothing to send. Every item is checked off." : "Your grocery list is empty. Add meals from your plan first."); return; }
+  remPick = Object.fromEntries(lines.map((_, i) => [i, true]));
+  openModal(`${modalHead("Send to Reminders?")}
+    <div class="modal-body">
+      <p class="small muted">These go to your Reminders list through the ${SHORTCUT_NAME} shortcut. Uncheck anything you already have.</p>
+      <div class="row" style="justify-content:space-between"><span class="label" id="rem-count">${lines.length} of ${lines.length} selected</span><button class="link small" data-act="rem-all">Select none</button></div>
+      <ul class="glist">${lines.map((l, i) => `<li class="gitem"><input type="checkbox" id="rem-${i}" data-change="rem-pick" data-i="${i}" checked><label for="rem-${i}"><span class="n">${esc(l)}</span></label></li>`).join("")}</ul>
+      <button class="link small" data-act="reminders-help" style="justify-self:start">How to set up the shortcut</button>
+    </div>
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Cancel</button><button class="btn btn-primary" data-act="reminders-confirm" id="rem-send">Send ${lines.length} item${lines.length === 1 ? "" : "s"}</button></div>`, {size:"sm"});
+  remLines = lines;
+}
+let remLines = [];
+function updateRemCount(){
+  const n = Object.values(remPick).filter(Boolean).length, total = remLines.length;
+  const c = $("#rem-count"); if (c) c.textContent = `${n} of ${total} selected`;
+  const b = $("#rem-send"); if (b) { b.textContent = `Send ${n} item${n === 1 ? "" : "s"}`; b.disabled = !n; }
+  const a = $("[data-act=rem-all]"); if (a) a.textContent = n ? "Select none" : "Select all";
 }
 function remindersModal(){
   const n = remindersText().split("\n").filter(Boolean).length;
@@ -1569,12 +1635,18 @@ function remindersModal(){
       </ol>
       <p class="small muted">Sending also copies the list. If the shortcut isn't set up, open Reminders, start a new reminder, and paste: each line becomes its own item. Checked items and pantry staples are left out.</p>
     </div>
-    <div class="modal-foot"><button class="btn" data-act="close-modal">Not now</button><button class="btn btn-primary" data-act="reminders-go">It's set up. Send ${n} item${n === 1 ? "" : "s"}</button></div>`, {size:"sm"});
+    <div class="modal-foot"><button class="btn" data-act="close-modal">Not now</button><button class="btn btn-primary" data-act="reminders-go">It's set up. Continue</button></div>`, {size:"sm"});
 }
 
 /* Grocery */
+function groceryRange(days){
+  if (!days.length) return "";
+  const f = d => fmtDate(d, {weekday:"short", month:"short", day:"numeric"});
+  return days.length === 1 ? f(days[0]) : days.length <= 3 ? days.map(d => fmtDate(d, {weekday:"short"})).join(", ") + " · " + fmtDate(days[0], {month:"short", day:"numeric"}) + "–" + fmtDate(days[days.length - 1], {day:"numeric"})
+    : `${days.length} days · ${fmtDate(days[0], {month:"short", day:"numeric"})} – ${fmtDate(days[days.length - 1], {month:"short", day:"numeric"})}`;
+}
 function viewGrocery(){
-  const g = buildGrocery(), days = weekDays();
+  const g = buildGrocery(), days = groceryDays();
   const checked = S.grocery.checked;
   const main = g.items.filter(i => !i.staple), staples = g.items.filter(i => i.staple);
   const itemHTML = it => { const id = "g-" + it.key.replace(/[^a-z0-9]+/g, "-"); const on = !!checked[it.key];
@@ -1584,14 +1656,22 @@ function viewGrocery(){
     return list.length ? `<div class="card section"><div class="row" style="justify-content:space-between"><h3>${l}</h3><span class="small muted">${list.filter(i => checked[i.key]).length}/${list.length}</span></div><ul class="glist">${list.map(itemHTML).join("")}</ul></div>` : ""; }).join("");
   const extras = S.grocery.extras;
   const nChecked = Object.values(checked).filter(Boolean).length + extras.filter(x => x.done).length;
-  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Groceries</span><h1>${esc(fmtDate(days[0], {month:"short", day:"numeric"}))} – ${esc(fmtDate(days[6], {month:"short", day:"numeric"}))}</h1>
-      <p class="small muted num">Built from ${g.meals} planned meals for ${S.settings.household} ${S.settings.household > 1 ? "people" : "person"}. Amounts round up to half batches.</p></div>
+  const empty = !days.length && !extras.length;
+  const dayChips = days.map(d => `<span class="pill num">${esc(fmtDate(d, {weekday:"short", month:"short", day:"numeric"}))}<button class="icon-btn" style="padding:0;min-width:0;min-height:0" data-act="grocery-day-remove" data-d="${d}" aria-label="Remove ${esc(fmtDate(d))} from the list">${ICONS.close}</button></span>`).join("");
+  return `<div class="section-head"><div class="section" style="gap:4px"><span class="label">Groceries</span><h1>${days.length ? esc(groceryRange(days)) : "Your grocery list"}</h1>
+      <p class="small muted num">${days.length ? `Built from ${g.meals} planned meal${g.meals === 1 ? "" : "s"} for ${S.settings.household} ${S.settings.household > 1 ? "people" : "person"}. Amounts round up to half batches.` : "Empty for now. Add the days you're shopping for and their planned meals turn into a list."}</p></div>
       <div class="row">
-        <label class="row small" style="gap:6px"><span class="muted">People</span><select class="input" style="width:auto;padding:6px 8px" data-set="household" id="hh-select">${[1,2,3,4,5,6].map(n => `<option value="${n}" ${S.settings.household == n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
-        <button class="icon-btn" data-act="week" data-dir="-1" aria-label="Previous week" ${ui.weekOffset <= 0 ? "disabled" : ""}>${ICONS.left}</button><button class="icon-btn" data-act="week" data-dir="1" aria-label="Next week" ${ui.weekOffset >= 3 ? "disabled" : ""}>${ICONS.right}</button>
-        <button class="btn btn-sm btn-primary" data-act="reminders">${ICONS.check}Send to Reminders</button>
+        <button class="btn btn-sm btn-primary" data-act="grocery-add">Add meals from your plan</button>
+        ${empty ? "" : `<label class="row small" style="gap:6px"><span class="muted">People</span><select class="input" style="width:auto;padding:6px 8px" data-set="household" id="hh-select">${[1,2,3,4,5,6].map(n => `<option value="${n}" ${S.settings.household == n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+        <button class="btn btn-sm" data-act="reminders">${ICONS.check}Send to Reminders</button>
         <button class="btn btn-sm" data-act="copy-list">Copy list</button>
-        <button class="btn btn-sm" data-act="clear-checked" ${nChecked ? "" : "disabled"}>Clear checked</button></div></div>
+        <button class="btn btn-sm" data-act="clear-checked" ${nChecked ? "" : "disabled"}>Clear checked</button>
+        <button class="btn btn-sm btn-ghost btn-danger" data-act="grocery-clear-ask">Clear list</button>`}</div></div>
+    ${days.length ? `<div class="row" aria-label="Days on this list">${dayChips}</div>` : ""}
+    <div id="grocery-clear-confirm"></div>
+    ${empty ? `<div class="card section" style="justify-items:start"><h2>Nothing on your list yet</h2>
+      <p class="muted">Pick the days you're shopping for. Every meal planned for those days is added, with amounts combined and sorted by aisle. You can also add a day from Today or the Week plan.</p>
+      <div class="row"><button class="btn btn-primary" data-act="grocery-add">Add meals from your plan</button><button class="btn" data-act="grocery-add-today">Add today's meals</button></div></div>` : ""}
     <div class="cols">${groups}
       <div class="card section"><h3>Extras</h3>
         <ul class="glist">${extras.map(x => `<li class="gitem ${x.done ? "checked" : ""}"><input type="checkbox" id="x-${esc(x.id)}" data-change="xcheck" data-id="${esc(x.id)}" ${x.done ? "checked" : ""}><label for="x-${esc(x.id)}"><span class="n">${esc(x.name)}</span></label><button class="icon-btn" data-act="del-extra" data-id="${esc(x.id)}" aria-label="Remove ${esc(x.name)}">${ICONS.trash}</button></li>`).join("")}</ul>
@@ -1605,7 +1685,7 @@ function countName(it){
   return n;
 }
 function groceryText(){
-  const g = buildGrocery(), ch = S.grocery.checked, lines = [`Groceries ${fmtDate(weekDays()[0])} – ${fmtDate(weekDays()[6])}`];
+  const g = buildGrocery(), ch = S.grocery.checked, lines = [groceryDays().length ? `Groceries · ${groceryRange(groceryDays())}` : "Groceries"];
   for (const [k, l] of SECTIONS) { const list = g.items.filter(i => !i.staple && i.section === k && !ch[i.key]); if (list.length) { lines.push("", l.toUpperCase()); list.forEach(i => lines.push(`- ${fmtAmounts(i)} ${countName(i)}`)); } }
   const ex = S.grocery.extras.filter(x => !x.done); if (ex.length) { lines.push("", "EXTRAS"); ex.forEach(x => lines.push("- " + x.name)); }
   const st = g.items.filter(i => i.staple && !ch[i.key]); if (st.length) { lines.push("", "CHECK PANTRY"); st.forEach(i => lines.push("- " + i.name)); }
@@ -1653,13 +1733,39 @@ function foodModal(){
     <form class="modal-body" id="food-form" autocomplete="off">
       <div class="grid g2"><label class="field"><span>Meal</span><select class="input" id="ff-slot">${SLOTS.map(s => `<option value="${s.key}">${s.name}</option>`).join("")}</select></label>
       <label class="field"><span>From a recipe (optional)</span><select class="input" id="ff-recipe" data-change="ff-recipe"><option value="">Something else</option>${all.map(r => `<option value="${esc(r.id)}">${esc(r.title)}</option>`).join("")}</select></label></div>
-      <div class="grid g2"><label class="field"><span>Food name</span><input class="input" id="ff-name" required placeholder="Greek yogurt with berries"></label>
+      <div class="grid g2"><label class="field"><span>Food name</span><input class="input" id="ff-name" required placeholder="1 cup Greek yogurt with ½ cup berries"><small>Include amounts, like “2 eggs” or “1 cup rice,” for a better estimate.</small></label>
       <label class="field"><span>Servings</span><input class="input num" type="number" id="ff-serv" min="0.25" step="0.25" value="1" data-change="ff-recipe"></label></div>
       <div class="grid g4">${[["protein","Protein (g)"],["carbs","Carbs (g)"],["fat","Fat (g)"],["fiber","Fiber (g)"],["iron","Iron (mg)"],["calcium","Calcium (mg)"],["vitC","Vitamin C (mg)"]].map(([k, l]) => `<label class="field"><small>${l}</small><input class="input num" type="number" step="0.1" min="0" id="ff-${k}" value="0"></label>`).join("")}</div>
+      <div class="row"><button type="button" class="btn btn-sm" data-act="food-estimate">${ICONS.spark}Estimate nutrition</button><span class="small muted" id="ff-est-status" aria-live="polite"></span></div>
       <p class="small muted">Totals are for everything you ate, not per serving.</p>
     </form>
     <div class="modal-foot"><button class="btn" data-act="close-modal">Cancel</button><button class="btn btn-primary" data-act="save-food">Add to log</button></div>`);
   $("#food-form").addEventListener("submit", e => { e.preventDefault(); saveFood(); });
+}
+// Estimates a typed food like "2 eggs and 1 slice toast", multiplied by servings
+function estimateFood(text, servings){
+  const parts = String(text).split(/\s*(?:,|;|\+|&|\bwith\b|\band\b|\bplus\b|\bon\b|\bover\b)\s*/i).map(x => x.trim()).filter(Boolean);
+  const tot = {protein:0, carbs:0, fat:0, fiber:0, iron:0, calcium:0, vitC:0}, used = [], missed = [];
+  for (const part of parts) {
+    const ing = parseIngredientLine(part);
+    if (ing.qty == null) ing.qty = 1;
+    const f = foodFor(ing.item);
+    if (!f) { missed.push(part); continue; }
+    const g = gramsFor(ing, f);
+    ["protein","carbs","fat","fiber","iron","calcium","vitC"].forEach((k, i) => { tot[k] += f.n[i] * g / 100; });
+    used.push(`${ing.item} (${Math.round(g)} g)`);
+  }
+  const sv = Math.max(0.25, +servings || 1), nut = {};
+  for (const k of Object.keys(tot)) nut[k] = r1(tot[k] * sv);
+  return {nut, used, missed};
+}
+function runFoodEstimate(){
+  const name = $("#ff-name").value.trim(), st = $("#ff-est-status");
+  if (!name) { st.textContent = "Type what you ate first."; $("#ff-name").focus(); return; }
+  const e = estimateFood(name, $("#ff-serv").value);
+  if (!e.used.length) { st.textContent = "Couldn't recognize that food. Try a simpler name, like “Greek yogurt,” or fill in the numbers."; return; }
+  for (const k of ["protein","carbs","fat","fiber","iron","calcium","vitC"]) $("#ff-" + k).value = e.nut[k];
+  st.textContent = `Estimated from ${e.used.join(", ")}.` + (e.missed.length ? ` Not recognized: ${e.missed.join(", ")}.` : "") + " Adjust if you know better values.";
 }
 function saveFood(){
   const name = $("#ff-name").value.trim();
@@ -1728,7 +1834,7 @@ async function doExport(){
 function restoreBackup(data){
   if (data.settings) { S.settings = Object.assign(clone(DEFAULT_SETTINGS), data.settings); persist("settings"); }
   if (data.plan) { S.plan = {days:data.plan.days || {}}; persist("plan"); }
-  if (data.grocery) { S.grocery = {checked:data.grocery.checked || {}, extras:data.grocery.extras || []}; persist("grocery"); }
+  if (data.grocery) { S.grocery = {checked:data.grocery.checked || {}, extras:data.grocery.extras || [], days:Array.isArray(data.grocery.days) ? data.grocery.days.filter(isDate) : []}; persist("grocery"); }
   let n = 0;
   (data.recipes || []).forEach(x => { if (x && x.title) { const r = normalizeRecipe(x); S.recipes[r.id] = r; persist("recipe_" + r.id); n++; } });
   (data.logs || []).forEach(x => { if (x && isDate(x.date)) { S.logs[x.date] = {date:x.date, meals:x.meals || [], prenatal:!!x.prenatal}; persist("log_" + x.date); } });
@@ -1975,9 +2081,20 @@ const ACT = {
   "save-found-one": el => { const i = +el.dataset.i; const r = readRecipeForm(); scan.found[i] = r; scannerModal(); },
   "save-found": () => { if (!needReady()) return; let n = 0; scan.found.forEach((r, i) => { if (scan.sel[i]) { S.recipes[r.id] = r; persist("recipe_" + r.id); n++; } });
     scan.found = []; scan.draft = ""; closeModal(true); ui.rSource = "mine"; ui.rFit = false; go("recipes"); toast(`Saved ${n} recipe${n === 1 ? "" : "s"}`); },
-  "reminders": () => { if (remindersReady()) sendToReminders(); else remindersModal(); },
-  "reminders-go": () => { try { localStorage.setItem("cherish_reminders_ready", "1"); } catch {} closeModal(true); sendToReminders(); },
+  "reminders": () => { if (remindersReady()) confirmRemindersModal(); else remindersModal(); },
+  "reminders-go": () => { try { localStorage.setItem("cherish_reminders_ready", "1"); } catch {} closeModal(true); confirmRemindersModal(); },
+  "reminders-confirm": () => { const lines = remLines.filter((_, i) => remPick[i]); if (!lines.length) return; closeModal(true); sendToReminders(lines); },
+  "rem-all": () => { const on = !Object.values(remPick).some(Boolean); remLines.forEach((_, i) => { remPick[i] = on; const c = $("#rem-" + i); if (c) c.checked = on; }); updateRemCount(); },
   "reminders-help": () => remindersModal(),
+  "grocery-add": () => groceryAddModal(),
+  "grocery-add-today": () => addDaysToGrocery([ui.today], "today's meals"),
+  "grocery-day-add": el => addDaysToGrocery([el.dataset.d], fmtDate(el.dataset.d)),
+  "grocery-day-remove": el => { setGroceryDays(groceryDays().filter(d => d !== el.dataset.d)); render(); toast(`Removed ${fmtDate(el.dataset.d)} from your grocery list`); },
+  "grocery-add-week": () => { const days = weekDays().filter(d => d >= ui.today); addDaysToGrocery(days, days.length === 7 ? "this week" : `${days.length} days`); },
+  "gday-quick": el => { const n = +el.dataset.n; for (let i = 0; i < 14; i++) { const d = addDays(ui.today, i), c = $("#gd-" + d); if (c && !c.disabled) { c.checked = i < n; gPick[d] = i < n; } } updateGdayBtn(); },
+  "gday-add": () => { const days = Object.keys(gPick).filter(d => gPick[d]); if (!days.length) return; closeModal(true); addDaysToGrocery(days); },
+  "grocery-clear-ask": () => { $("#grocery-clear-confirm").innerHTML = `<div class="notice warn"><div><b>Clear your grocery list?</b> This removes every day, checkmark, and extra item. Your meal plan stays as it is.</div><button class="btn btn-sm btn-danger" data-act="grocery-clear">Clear list</button></div>`; },
+  "grocery-clear": () => { S.grocery = {checked:{}, extras:[], days:[]}; persist("grocery"); render(); toast("Grocery list cleared"); },
   "copy-list": () => copyText(groceryText(), "Grocery list"),
   "clear-checked": () => { S.grocery.checked = {}; S.grocery.extras = S.grocery.extras.filter(x => !x.done); persist("grocery"); render(); toast("Cleared checked items"); },
   "del-extra": el => { S.grocery.extras = S.grocery.extras.filter(x => x.id !== el.dataset.id); persist("grocery"); render(); },
@@ -1985,6 +2102,7 @@ const ACT = {
   "logtoday": () => { ui.logDate = ui.today; render(); },
   "add-food": () => foodModal(),
   "save-food": () => saveFood(),
+  "food-estimate": () => runFoodEstimate(),
   "del-meal": el => { const d = ui.logDate, log = clone(getLog(d)); log.meals = log.meals.filter(m => m.id !== el.dataset.id); saveLog(d, log); render(); },
   "customize-brand": () => { const b = brandInfo(); S.settings.customPrenatal = {iron:+b.iron||0, folate:+b.folate||0, vitD:+b.vitD||0, vitB12:+b.vitB12||0, calcium:+b.calcium||0, dha:+b.dha||0}; S.settings.prenatalBrand = "custom"; persist("settings"); render(); },
   "export": () => doExport(),
@@ -1996,7 +2114,7 @@ const ACT = {
   "erase-ask": () => { $("#erase-confirm").innerHTML = `<div class="notice warn"><div><b>Erase everything?</b> This deletes your recipes, plan, logs, and settings. Export a backup first if you might want them.</div><button class="btn btn-sm btn-danger" data-act="erase">Erase all data</button></div>`; },
   "erase": () => {
     const keys = ["settings","plan","grocery", ...Object.keys(S.recipes).map(k => "recipe_" + k), ...Object.keys(S.logs).map(k => "log_" + k)];
-    S.settings = clone(DEFAULT_SETTINGS); S.plan = {days:{}}; S.grocery = {checked:{}, extras:[]}; S.recipes = {}; S.logs = {};
+    S.settings = clone(DEFAULT_SETTINGS); S.plan = {days:{}}; S.grocery = {checked:{}, extras:[], days:[]}; S.recipes = {}; S.logs = {};
     keys.forEach(k => persist(k)); go("today"); toast("All data erased");
   }
 };
@@ -2025,6 +2143,8 @@ document.addEventListener("change", e => {
   if (c === "prenatal") { if (!needReady()) return; const d = t.dataset.date, log = clone(getLog(d)); log.prenatal = t.checked; saveLog(d, log); render(); toast(t.checked ? "Prenatal logged" : "Prenatal unmarked"); }
   if (c === "gcheck") { S.grocery.checked[t.dataset.key] = t.checked; if (!t.checked) delete S.grocery.checked[t.dataset.key]; persist("grocery"); t.closest(".gitem").classList.toggle("checked", t.checked); }
   if (c === "xcheck") { const x = S.grocery.extras.find(y => y.id === t.dataset.id); if (x) x.done = t.checked; persist("grocery"); t.closest(".gitem").classList.toggle("checked", t.checked); }
+  if (c === "gday-pick") { gPick[t.dataset.d] = t.checked; updateGdayBtn(); }
+  if (c === "rem-pick") { remPick[+t.dataset.i] = t.checked; updateRemCount(); }
   if (c === "found-sel") { scan.sel[+t.dataset.i] = t.checked; const b = $("[data-act=save-found]"); if (b) b.textContent = `Save ${Object.values(scan.sel).filter(Boolean).length} recipe(s)`; }
   if (c === "ff-recipe") { const r = recipeById($("#ff-recipe").value); if (!r) return; const sv = +$("#ff-serv").value || 1;
     if (!$("#ff-name").value || t.id === "ff-recipe") $("#ff-name").value = r.title;
